@@ -47,12 +47,8 @@ sub start_transfer{
 
 sub finish_current_task {
 	my $self = shift;
-	my @events;
-#	if (defined $self->{current_task}) {
-		@events = $self->{simulator}->task_finished($self);
-		$self->{current_task} = undef;
-		#	}
-	return @events;
+	my $events = $self->{simulator}->task_finished($self);
+	return \@{$events};
 }
 
 sub get_id{

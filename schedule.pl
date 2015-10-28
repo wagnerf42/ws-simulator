@@ -14,4 +14,4 @@ my $simulator = Simulator->new($tasks_file, $processors);
 
 $simulator->run();
 
-print "finished at t = ";#. $simulator->get_time() ."\n";
+print "finished at t = ". $simulator->get_time() ."\n";

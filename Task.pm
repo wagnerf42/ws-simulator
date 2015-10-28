@@ -17,24 +17,30 @@ sub new {
 sub display {
 	my $self = shift;
 	print "Task $self->{name} with execution time = $self->{time} and has " . scalar(@{$self->{predecessors}}) ." predecessors \n";
-	print " ==> @{$self->{predecessors}} " if scalar(@{$self->{predecessors}}) > 0 ; 
+	print "remaining tasks $self->{remaining_predecessors} ==> @{$self->{predecessors}} \n" if scalar(@{$self->{predecessors}}) > 0 ; 
+	
+	print "execute processor : $self->{processor}\n" if defined $self->{processor};
 	return;
 	}
 
 sub is_ready {
 	my $self = shift;
-	return $self->{remaining_predecessors};
+	return 1 if $self->{remaining_predecessors} == 0;
+	return;
 	}
 
 sub update_predecessor{
 	my $self = shift;
 	my $task_finished = shift;
 	my @new_predecessors;
+	my $updated = 0;
 	for(my $i = 0 ; $i<scalar(@{$self->{predecessors}}) ; $i++){
-		$self->{remaining_predecessors}-- if $task_finished->{name} ne @{$self->{predecessors}}[$i];
+		if ($task_finished->{name} eq @{$self->{predecessors}}[$i]){
+		 	$self->{remaining_predecessors}--;
+			$updated = 1;
 		}
-		
-	return;
+	}
+	return $updated;
 }
 
 sub get_predecessors{

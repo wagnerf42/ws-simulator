@@ -33,14 +33,15 @@ sub creat_init_event{
 	for my $task (@{$self->{tasks}}){
 		push @{$self->{ready_tasks}}, $task if $task->is_ready();
 	}
-	
+
 	while($self->has_ready_tasks() and $self->has_idle_processors()){
 		my $task = shift @{$self->{ready_tasks}};
 		my $processor = shift @{$self->{idle_processors}};
+		$processor->{current_task} = $task;
 		my $event = $processor->start_task($task);
 		$self->{events}->add_event($event);
 	}
-	
+
 	return;
 }
 
@@ -74,7 +75,7 @@ sub task_finished {
 		my $event = $processor->assigned_task($task);
 		push @new_events, $event;
 	}
-	
+
 	return \@new_events;
 }
 
@@ -87,7 +88,7 @@ sub update_ready_tasks{
 
 		my $value = @{$self->{tasks}}[$i]->update_predecessor($executed_task);
 		push @{$self->{ready_tasks}},  @{$self->{tasks}}[$i] if @{$self->{tasks}}[$i]->is_ready() and $value == 1; 	
-	 }
+	}
 	return;
 }
 
@@ -104,7 +105,7 @@ sub create_processors {
 sub load_tasks{
 	my $filename = shift;
 	my @tasks;
-		open(FILE, '<', $filename) or die "cannot open file $filename";
+	open(FILE, '<', $filename) or die "cannot open file $filename";
 	while(my $line = <FILE>) {
 		my @split_line = split(/ /,$line);
 		my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
@@ -139,4 +140,14 @@ sub display_tasks{
 		$task->display();
 	}
 }
+
+sub get_task_by_name{
+	my $self = shift;
+	my $task_name = shift;
+	for my $task (@{$self->{tasks}}){
+		return $task if $task->get_name() eq $task_name;
+	}
+
+}
+
 1;

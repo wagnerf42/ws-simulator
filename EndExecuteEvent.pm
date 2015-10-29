@@ -18,7 +18,7 @@ sub new {
 
 sub display {
 		my $self = shift;
-		print "processor P".$self->{processor}->{id}." will finished task ".$self->{task}->{name}."(".$self->{task}->{time}.") at $self->{time}\n";
+		print "processor P".($self->{processor}->{id}+1)." finished a task ".$self->{task}->{name}."(".$self->{task}->{time}.") at $self->{time}\n";
 				return;
 			}
 
@@ -26,7 +26,6 @@ sub execute {
 	my $self = shift;
 	my $events = $self->{processor}->finish_current_task();
 	return \@{$events};						
-
 }
 
 1;

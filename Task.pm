@@ -61,6 +61,11 @@ sub get_execution_processor{
 	return $self->{processor};
 	}
 
+sub get_size_file{
+	my $self = shift;
+	return $self->{size_file};
+}
+
 sub get_name{
 	my $self = shift;
 	return $self->{name};

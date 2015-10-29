@@ -9,25 +9,29 @@ use parent 'Event';
 sub new {
 	my $class = shift;
 	my $self = {};
-	$self->{size} = shift;	
-	$self->{processor} = shift;
-	$self->{task} = shift;
+	$self->{processor_sender} = shift;
+	$self->{processor_receiver} = shift;
+	$self->{current_task} = shift;
+	$self->{predecessor} = shift;
+	$self->{size_file} = shift;
+	$self->{time} = shift;			
 	bless $self, $class;
-	$self->{time} = $self->{size};	
 	return $self;
 }
 
 sub display{
 	my $self = shift;
-	print "processor P".$self->{processor}->{id}." has all file (".$self->{size}.") for a task ".$self->{task}->{name};
+	print "Processor P".($self->{processor_sender}+1)." finished send file of task ".$self->{predecessor}->{name}."(".$self->{size_file}.") to Processor P".($self->{processor_receiver}->{id}+1)." at ".$self->{time}."\n";
 	return;
 }
 
-
 sub execute {
 	my $self = shift;
-	print "execute EndTransferEvent \n";
-	return $self->{processor}->start_task($self->{task});
+	my $event = $self->{processor_receiver}->finish_transfer($self->{predecessor},$self->{size_file});
+	my @events;
+	push @events, $event;	
+	return \@{events};                     
 }
+
 
 1;

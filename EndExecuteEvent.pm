@@ -25,7 +25,7 @@ sub display {
 sub execute {
 	my $self = shift;
 	my $events = $self->{processor}->finish_current_task();
-	return \@{$events};						
+	return @{$events};						
 }
 
 1;

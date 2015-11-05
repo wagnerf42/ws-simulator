@@ -19,7 +19,7 @@ sub new {
 	return $self;
 }
 
-sub display{
+sub display {
 	my $self = shift;
 	print "Processor P".($self->{processor_sender}+1)." finished send file of task ".$self->{predecessor}->{name}."(".$self->{size_file}.") to Processor P".($self->{processor_receiver}->{id}+1)." at ".$self->{time}."\n";
 	return;
@@ -30,7 +30,7 @@ sub execute {
 	my $event = $self->{processor_receiver}->finish_transfer($self->{predecessor},$self->{size_file});
 	my @events;
 	push @events, $event;	
-	return \@{events};                     
+	return @events;                     
 }
 
 

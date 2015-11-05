@@ -14,7 +14,7 @@ sub new {
 	return $self;
 }
 
-sub display{
+sub display {
 	my $self = shift;
 	print "number of events : ".scalar(@{$self->{events}})."\n";
 	for my $event (@{$self->{events}}){

@@ -94,7 +94,6 @@
 6 Exec PS Executing "2 .0 .1"
 6 Idle PS Idle "8 .3 .0"
 6 TR PS Transfer "0 .3 .8"
-14 Pr "data" "5 .0 .5" D
 14 PL "Task" "1 .5 .5" T
 7 0 TTP P 0 "Plate-forme"
 4 "Communication" P Pr Pr C
@@ -105,36 +104,48 @@
 10 0 PS P1 Idle "" 
 7 0 P2 Pr TTP "P 2" 
 10 0 PS P2 Idle "" 
-15 0 Pile T 1.000 
+15 0 Pile T 0.000 
+16 0 Pile T 1.000 
 10 0 PS P0 Exec "t1" 
+17 34 Pile T 1.00 
+16 34 Pile T 1.00 
+16 34 Pile T 1.00 
+16 34 Pile T 1.00 
+16 34 Pile T 1.00 
 10 34 PS P0 Idle "" 
-10 34 PS P0 Exec "t3" 
+10 34 PS P0 Exec "t2" 
 10 34 PS P1 Tr "t1" 
 11 34 P0 0_1_t1 "54" TTP C
 12 34 P1 0_1_t1 "54" TTP C
 10 34 PS P2 Tr "t1" 
 11 34 P0 0_2_t1 "54" TTP C
 12 34 P2 0_2_t1 "54" TTP C
-10 67 PS P0 Idle "" 
-10 67 PS P0 Exec "t4" 
-10 88 PS P1 Exec "t5" 
-10 88 PS P2 Exec "t2" 
-10 99 PS P0 Idle "" 
-10 100 PS P2 Idle "" 
-10 123 PS P1 Idle "" 
-10 123 PS P1 Tr "t3" 
-11 123 P0 0_1_t3 "43" TTP C
-12 123 P1 0_1_t3 "43" TTP C
-10 166 PS P1 Tr "t4" 
-11 166 P0 0_1_t4 "11" TTP C
-12 166 P1 0_1_t4 "11" TTP C
-10 177 PS P1 Tr "t2" 
-11 177 P2 2_1_t2 "34" TTP C
-12 177 P1 2_1_t2 "34" TTP C
-10 211 PS P1 Exec "t6" 
-10 222 PS P1 Idle "" 
+17 46 Pile T 1.00 
+10 46 PS P0 Idle "" 
+10 46 PS P0 Exec "t4" 
+17 78 Pile T 1.00 
+10 78 PS P0 Idle "" 
+10 88 PS P1 Exec "t3" 
+10 88 PS P2 Exec "t5" 
+17 121 Pile T 1.00 
+10 121 PS P1 Idle "" 
+17 123 Pile T 1.00 
+16 123 Pile T 1.00 
+10 123 PS P2 Idle "" 
+10 123 PS P2 Tr "t4" 
+11 123 P0 0_2_t4 "11" TTP C
+12 123 P2 0_2_t4 "11" TTP C
+10 134 PS P2 Tr "t3" 
+11 134 P1 1_2_t3 "43" TTP C
+12 134 P2 1_2_t3 "43" TTP C
+10 177 PS P2 Tr "t2" 
+11 177 P0 0_2_t2 "34" TTP C
+12 177 P2 0_2_t2 "34" TTP C
+10 211 PS P2 Exec "t6" 
+17 222 Pile T 1.00 
+10 222 PS P2 Idle "" 
 8 222 Pile PL
-8 222 P1 Pr
 8 222 P2 Pr
+8 222 P1 Pr
 8 222 P0 Pr
 8 222 TTP P

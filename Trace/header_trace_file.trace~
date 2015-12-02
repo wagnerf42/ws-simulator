@@ -99,28 +99,3 @@
 7 0 TTP P 0 "Plate-forme"
 4 "Communication" P Pr Pr C
 7 0 Pile PL TTP "Pile 1"
-
-
-
-7 0 P0 Pr TTP "P 0" 
-10 O PS P0 Idle "" 
-7 0 P1 Pr TTP "P 1" 
-10 O PS P1 Idle "" 
-7 0 P2 Pr TTP "P 2" 
-10 O PS P2 Idle "" 
-10 0 PS P0 Exec "t1" 
-10 34 PS P0 Exec "t3" 
-10 34 PS P1 Tr "t1" 
-10 34 PS P2 Tr "t1" 
-10 67 PS P0 Exec "t2" 
-10 88 PS P1 Exec "t4" 
-10 88 PS P2 Exec "t5" 
-10 123 PS P2 Tr "t4" 
-10 134 PS P2 Tr "t2" 
-10 168 PS P2 Tr "t3" 
-10 211 PS P2 Exec "t6" 
-8 222 Pile PL
-8 222 P2 Pr
-8 222 P1 Pr
-8 222 P0 Pr
-8 222 TTP P

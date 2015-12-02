@@ -14,7 +14,7 @@ sub new {
     my $class = shift;
     my $tasks_file = shift;
     my $processor_numbers = shift;
-	my $self = {};
+    my $self = {};
     $self->{time} = 0;
     $self->{idle_processors} = [];
     $self->{tasks} = load_tasks($tasks_file);
@@ -22,20 +22,22 @@ sub new {
     $self->{ready_tasks} = [];
     $self->{events} = EventQueue->new();
     bless $self, $class;
-	$self->set_trace_file_header();
-	$self->create_processors($processor_numbers);
+    $self->set_trace_file_header();
+    $self->create_processors($processor_numbers);
     $self->create_init_event();
-  	return $self;
+    return $self;
 }
 
 sub create_init_event {
     my $self = shift;
-	$self->{ready_tasks} = [grep {$_->is_ready()} values %{$self->{tasks}}];
-	my $trace_line = "15 0 Pile T ".scalar(@{$self->{ready_tasks}})."\.000 \n";
-	$self->add_trace_line($trace_line);
-	my $events = $self->assign_tasks_to_idle_processors();
+    $self->{ready_tasks} = [grep {$_->is_ready()} values %{$self->{tasks}}];
+    my $trace_line = "15 0 Pile T 0.000 \n";
+	$trace_line .= "16 0 Pile T ".scalar(@{$self->{ready_tasks}}).".000 \n"; 
+	print $trace_line;
+    $self->add_trace_line($trace_line);
+    my $events = $self->assign_tasks_to_idle_processors();
     for my $event (@$events) {
-		$self->{events}->add_event($event);
+	$self->{events}->add_event($event);
     }
     return;
 }
@@ -64,9 +66,9 @@ sub run {
             $self->{events}->add_event($event);
         }
     }
-	$self->add_finish_lines_to_trace();
+    $self->add_finish_lines_to_trace();
     $self->create_trace_file(); 
-	return $self->{time};
+    return $self->{time};
 }
 
 sub add_finish_lines_to_trace {
@@ -99,10 +101,13 @@ sub task_finished {
 sub update_ready_tasks {
     my $self = shift;
     my $executed_task_name = shift;
+    my $trace_line = "17 ".$self->get_time()." Pile T 1.00 \n";
     for my $task (values %{$self->{tasks}}) {
         my $updated = $task->update_predecessor($executed_task_name);
         push @{$self->{ready_tasks}}, $task if $task->is_ready() and $updated == 1 ;
-    }
+    	$trace_line .= "16 ".$self->get_time()." Pile T 1.00 \n" if $task->is_ready() and $updated == 1; 
+	}
+    $self->add_trace_line($trace_line);
     return;
 }
 

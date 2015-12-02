@@ -94,7 +94,6 @@
 6 Exec PS Executing "2 .0 .1"
 6 Idle PS Idle "8 .3 .0"
 6 TR PS Transfer "0 .3 .8"
-14 Pr "data" "5 .0 .5" D
 14 PL "Task" "1 .5 .5" T
 7 0 TTP P 0 "Plate-forme"
 4 "Communication" P Pr Pr C

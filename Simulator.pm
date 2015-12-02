@@ -22,14 +22,17 @@ sub new {
     $self->{ready_tasks} = [];
     $self->{events} = EventQueue->new();
     bless $self, $class;
-    $self->create_processors($processor_numbers);
+	$self->set_trace_file_header();
+	$self->create_processors($processor_numbers);
     $self->create_init_event();
-    return $self;
+  	return $self;
 }
 
 sub create_init_event {
     my $self = shift;
 	$self->{ready_tasks} = [grep {$_->is_ready()} values %{$self->{tasks}}];
+	my $trace_line = "15 0 Pile T ".scalar(@{$self->{ready_tasks}})."\.000 \n";
+	$self->add_trace_line($trace_line);
 	my $events = $self->assign_tasks_to_idle_processors();
     for my $event (@$events) {
 		$self->{events}->add_event($event);
@@ -61,7 +64,20 @@ sub run {
             $self->{events}->add_event($event);
         }
     }
-    return $self->{time};
+	$self->add_finish_lines_to_trace();
+    $self->create_trace_file(); 
+	return $self->{time};
+}
+
+sub add_finish_lines_to_trace {
+	my $self = shift;
+	my $trace_line = "8 ".$self->{time}." Pile PL\n";
+	for my $proc (@{$self->{idle_processors}}){
+		$trace_line .= "8 ".$self->{time}." P".$proc->get_id()." Pr\n";	
+	}
+	$trace_line .= "8 ".$self->{time}." TTP P\n";  
+	$self->add_trace_line($trace_line);
+	return;	
 }
 
 sub task_finished {
@@ -75,6 +91,8 @@ sub task_finished {
 	$processor->{available_files}->{$executed_task->get_name} = $executed_task->get_name;
 	unshift @{$self->{idle_processors}}, $processor;
 
+	my $trace_line = "10 ".$self->get_time()." PS P".$id_processor." Idle \"\" \n";
+	$self->add_trace_line($trace_line);
     return $self->assign_tasks_to_idle_processors();
 }
 
@@ -99,7 +117,7 @@ sub load_tasks{
     my $filename = shift;
     my %tasks;
     open(FILE, '<', $filename) or die "cannot open file $filename";
-    while(my $line = <FILE>) {
+	while(my $line = <FILE>) {
         my @split_line = split(/ /,$line);
         my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
         my @predecessors;
@@ -107,7 +125,9 @@ sub load_tasks{
 		$task->init_predecessors(\@predecessors);
         $tasks{$task->get_name()} = $task;
     }
-    return \%tasks;}
+	
+	return \%tasks;
+}
 
 sub has_ready_tasks {
     my $self = shift;
@@ -138,4 +158,27 @@ sub get_task_by_name {
     return $self->{tasks}->{$task_name};
 }
 
+sub create_trace_file {
+	my $self = shift;
+	my $filename = "Trace/trace_file.trace";
+	open(FILE, '>', $filename) or die "cannot open file $filename";
+	print FILE $self->{trace};
+	close(FILE);
+}
+
+sub set_trace_file_header {
+	my $self = shift;
+	my $header_file_name = "Trace/header_trace_file.trace";    
+	open(H_FILE, '<', $header_file_name) or die "cannot open file $header_file_name";
+    while(my $line = <H_FILE>) {
+		$self->add_trace_line($line);	
+	}
+	return ;
+}
+
+sub add_trace_line {
+	my $self = shift;
+	my $trace_line = shift;
+	$self->{trace} .= $trace_line; 
+}
 1;

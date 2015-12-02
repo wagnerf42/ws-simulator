@@ -14,8 +14,17 @@ sub new {
     $self->{simulator} = shift;
     $self->{events} = [];
     $self->{available_files} = {};
-    bless $self, $class;
-    return $self;
+	bless $self, $class;
+    $self->add_processor_line_to_trace();
+	return $self;
+}
+
+sub add_processor_line_to_trace {
+	my $self = shift;
+	my $trace_line = "7 0 P".$self->get_id()." Pr TTP \"P ".$self->get_id()."\" \n";
+	$trace_line .= "10 0 PS P".$self->get_id()." Idle \"\" \n";
+	$self->{simulator}->add_trace_line($trace_line);
+	return;
 }
 
 sub assign_task {
@@ -40,6 +49,8 @@ sub missing_files_for_task {
 sub start_task {
     my $self = shift;
     my $time = $self->{simulator}->get_time() + $self->{current_task}->get_time();
+	my $trace_line = "10 ".$self->{simulator}->get_time()." PS P".$self->get_id()." Exec \"".$self->{current_task}->get_name()."\" \n";
+	$self->{simulator}->add_trace_line($trace_line);
     my $new_event = EndExecuteEvent->new($time, $self);
     return $new_event;
 }
@@ -52,7 +63,19 @@ sub start_transfer {
     my $id_processor_sender = $predecessor_task->get_execution_processor();
     my $size_file = $predecessor_task->get_file_size();
     my $time = $self->{simulator}->get_time() + $size_file * $transfer_time;
-    return EndTransferEvent->new($id_processor_sender, $self, $self->{current_task}, $predecessor_task, $size_file, $time);
+    
+	#status du processor
+	my $trace_line = "10 ".$self->{simulator}->get_time()." PS P".$self->get_id()." Tr \"".$first_file."\" \n";
+	
+	my $key_link = $id_processor_sender."_".$self->get_id()."_".$first_file;
+	#start link from sender
+	$trace_line .= "11 ".$self->{simulator}->get_time()." P".$id_processor_sender." ".$key_link." \"".$size_file."\" TTP C\n";
+
+	#end link to receiver
+$trace_line .= "12 ".$self->{simulator}->get_time()." P".$self->get_id()." ".$key_link." \"".$size_file."\" TTP C\n";
+
+	$self->{simulator}->add_trace_line($trace_line);
+	return EndTransferEvent->new($id_processor_sender, $self, $self->{current_task}, $predecessor_task, $size_file, $time);
 }
 
 sub finish_current_task {

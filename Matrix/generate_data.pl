@@ -36,7 +36,7 @@ sub multiply {
 				print $a->get_name().$i.$k.$b->get_name().$k.$j." ".($bloc_size**3)." ". $bloc_size**2 ." ".$a->get_name().$i.$k." ".$b->get_name().$k.$j." \n";
 				$pred .= $a->get_name().$i.$k.$b->get_name().$k.$j." ";
 			}
-			print "C".$i.$j." ".$bloc_size**2 ." ". $bloc_size**2 ." ". $pred."\n";
+			print "C".$i.$j." ".($bloc_size**2)*4 ." ". $bloc_size**2 ." ". $pred."\n";
 			$pred_C .="C".$i.$j." "; 		
 		}
 	}

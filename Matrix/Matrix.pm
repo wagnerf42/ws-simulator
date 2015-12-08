@@ -28,7 +28,7 @@ sub generate_split_tasks {
 	my $blocs_number = $self->{lines_number} / $bloc_size ; 
 	for my $i (1..$blocs_number){
 		for my $j (1..$blocs_number){
-			print "$self->{name}$i$j 1 ". $bloc_size**2 ." split-$self->{name} \n";
+			print "$self->{name}$i$j 0 ". $bloc_size**2 ." split-$self->{name} \n";
 		}
 	}
 

@@ -22,6 +22,24 @@ sub split {
 	return;
 }
 
+sub recursivity_split {
+	my $self = shift;
+	print "split-$self->{name} ". 2 * $self->{size} ." ".$self->{size}." \n";
+	return $self->generate_recursivity_split_tasks();
+}	
+
+sub generate_recursivity_split_tasks {
+    my $self = shift;
+	my $bloc_size = $self->{lines_number} / 2 ;
+	my @blocs;
+	for my $i (1..4){
+		my $bloc = Matrix->new($self->{name}.$i, $bloc_size, $bloc_size);	
+		print "$self->{name}$i 0 ". $bloc_size**2 ." split-$self->{name} \n";
+		push @blocs, $bloc;		
+		}
+	return @blocs;
+}
+					
 sub generate_split_tasks {
 	my $self = shift;
 	my $bloc_size = shift;
@@ -43,4 +61,16 @@ sub get_name {
 	my $self = shift;
 	return $self->{name};
 }
-1;
+
+sub get_blocs {
+	my $self = shift;
+	my $bloc_size = $self->{lines_number} / 2;
+	my @blocs;
+	for my $i (1..4){
+		my $bloc = Matrix->new($self->{name}.$i, $bloc_size, $bloc_size);
+		push @blocs, $bloc;
+	}
+	return @blocs;
+}
+
+1;	

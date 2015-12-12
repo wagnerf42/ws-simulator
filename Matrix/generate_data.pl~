@@ -6,11 +6,13 @@ use Matrix;
 
 die 'needed args :  matrix_size  block_size ' unless defined $ARGV[1] and $ARGV[0]=~/^\d+$/ and $ARGV[1]=~/^\d+$/ ;
 
+
 my $matrix_a = Matrix->new('a',$ARGV[0],$ARGV[0]);
 my $matrix_b = Matrix->new('b',$ARGV[0],$ARGV[0]);
 my $bloc_size = $ARGV[1];
 
 run_multiplication_by_bloc($matrix_a, $matrix_b, $bloc_size); 
+
 
 sub run_multiplication_by_bloc {
 	my ($matrix_a, $matrix_b, $bloc_size) = @_;
@@ -38,6 +40,7 @@ sub multiply {
 			$pred_C .="C".$i.$j." "; 		
 		}
 	}
+
 	print "Fusion ". (2 * ($a->get_size()**2)) ." ". ($a->get_size()**2) ." ".$pred_C ."\n";
 	return;
-}
+}	

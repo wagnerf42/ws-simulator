@@ -1,0 +1,23 @@
+split-a 20000 10000 
+a1 0 2500 split-a 
+a2 0 2500 split-a 
+a3 0 2500 split-a 
+a4 0 2500 split-a 
+split-b 20000 10000 
+b1 0 2500 split-b 
+b2 0 2500 split-b 
+b3 0 2500 split-b 
+b4 0 2500 split-b 
+lc1 125000 2500 a1 b1 
+rc1 125000 2500 a2 b3 
+c1 10000 2500 lc1 rc1 
+lc2 125000 2500 a1 b2 
+rc2 125000 2500 a2 b4 
+c2 10000 2500 lc2 rc2 
+lc3 125000 2500 a3 b1 
+rc3 125000 2500 a4 b3 
+c3 10000 2500 lc3 rc3 
+lc4 125000 2500 a3 b2 
+rc4 125000 2500 a4 b4 
+c4 10000 2500 lc4 rc4 
+c 20000 10000 c1 c2 c3 c4 

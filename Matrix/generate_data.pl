@@ -25,19 +25,29 @@ sub multiply {
 	my $b = shift;
 	my $bloc_size = shift;
 	my $blocs_number = $a->get_size() / $bloc_size;
-	my $pred_C;
+	
+	my $multiply_time = $bloc_size**3;
+	my $multiply_data_size = $bloc_size**2;
+	my $addition_time = ($bloc_size**2)*4;
+	my $addition_data_size = $bloc_size**2;
+	
+	my $fusion_time = 2 * ($a->get_size()**2); 
+	my $fusion_data_size = $a->get_size()**2;
+	my @fusion_predecessors;
 	for my $i (1..($blocs_number)) {
 		for my $j (1..($blocs_number)) {
 				my $s = 0;
-				my $pred = "";
+				my @addition_predecessors;
 			for my $k (1..($blocs_number)) {
-				print $a->get_name().$i.$k.$b->get_name().$k.$j." ".($bloc_size**3)." ". $bloc_size**2 ." ".$a->get_name().$i.$k." ".$b->get_name().$k.$j." \n";
-				$pred .= $a->get_name().$i.$k.$b->get_name().$k.$j." ";
+				print "a".$i.$k."*b".$k.$j." $multiply_time $multiply_data_size a".$i.$k." b".$k.$j." \n";
+				push @addition_predecessors, "a".$i.$k."*b".$k.$j;
 			}
-			print "C".$i.$j." ".($bloc_size**2)*4 ." ". $bloc_size**2 ." ". $pred."\n";
-			$pred_C .="C".$i.$j." "; 		
+			my $addition_pred = join(" ", @addition_predecessors);
+			print "C".$i.$j." $addition_time $addition_data_size $addition_pred\n";
+			push @fusion_predecessors, "C".$i.$j; 		
 		}
 	}
-	print "Fusion ". (2 * ($a->get_size()**2)) ." ". ($a->get_size()**2) ." ".$pred_C ."\n";
+	my $fusion_pred = join(" ", @fusion_predecessors);
+	print "Fusion $fusion_time $fusion_data_size $fusion_pred \n";
 	return;
 }

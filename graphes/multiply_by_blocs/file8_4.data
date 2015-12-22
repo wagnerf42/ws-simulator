@@ -1,0 +1,23 @@
+split-a 128 64 
+a11 0 16 split-a 
+a12 0 16 split-a 
+a21 0 16 split-a 
+a22 0 16 split-a 
+split-b 128 64 
+b11 0 16 split-b 
+b12 0 16 split-b 
+b21 0 16 split-b 
+b22 0 16 split-b 
+a11*b11 64 16 a11 b11 
+a12*b21 64 16 a12 b21 
+C11 64 16 a11*b11 a12*b21 
+a11*b12 64 16 a11 b12 
+a12*b22 64 16 a12 b22 
+C12 64 16 a11*b12 a12*b22 
+a21*b11 64 16 a21 b11 
+a22*b21 64 16 a22 b21 
+C21 64 16 a21*b11 a22*b21 
+a21*b12 64 16 a21 b12 
+a22*b22 64 16 a22 b22 
+C22 64 16 a21*b12 a22*b22 
+Fusion 128 64 C11 C12 C21 C22 

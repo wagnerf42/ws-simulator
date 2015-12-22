@@ -15,13 +15,14 @@ sub new {
     my $tasks_file = shift;
     my $processor_numbers = shift;
     my $self = {};
-    $self->{time} = 0;
+	$self->{time} = 0;
     $self->{idle_processors} = [];
     $self->{tasks} = load_tasks($tasks_file);
     $self->{remaining_tasks} = scalar(values %{$self->{tasks}});
     $self->{ready_tasks} = [];
     $self->{events} = EventQueue->new();
-    bless $self, $class;
+    $self->{tasks_file} = $tasks_file;
+	bless $self, $class;
     $self->set_trace_file_header();
     $self->create_processors($processor_numbers);
     $self->create_init_event();
@@ -31,10 +32,7 @@ sub new {
 sub create_init_event {
     my $self = shift;
     $self->{ready_tasks} = [grep {$_->is_ready()} values %{$self->{tasks}}];
-    my $trace_line = "15 0 Pile T 0.000 \n";
-	$trace_line .= "16 0 Pile T ".scalar(@{$self->{ready_tasks}}).".000 \n"; 
-	print $trace_line;
-    $self->add_trace_line($trace_line);
+    
     my $events = $self->assign_tasks_to_idle_processors();
     for my $event (@$events) {
 	$self->{events}->add_event($event);
@@ -59,11 +57,10 @@ sub run {
     my $self = shift;
     while ($self->{remaining_tasks} > 0) {
         my $event = $self->{events}->get_event();
-        $self->{time} = $event->get_time();
+		$self->{time} = $event->get_time();
         my @new_events = $event->execute(); 
-		$event->display();
-        for my $event (@new_events){
-            $self->{events}->add_event($event);
+		for my $event (@new_events){
+			$self->{events}->add_event($event);
         }
     }
     $self->add_finish_lines_to_trace();
@@ -123,6 +120,7 @@ sub load_tasks{
     my %tasks;
     open(FILE, '<', $filename) or die "cannot open file $filename";
 	while(my $line = <FILE>) {
+		chomp($line);
         my @split_line = split(/ /,$line);
         my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
         my @predecessors;
@@ -165,7 +163,9 @@ sub get_task_by_name {
 
 sub create_trace_file {
 	my $self = shift;
-	my $filename = "Trace/trace_file.trace";
+	my @file = split("/", $self->{tasks_file});
+	my @name = split(/\./, $file[1]);
+	my $filename = "../Trace/$name[0].trace";
 	open(FILE, '>', $filename) or die "cannot open file $filename";
 	print FILE $self->{trace};
 	close(FILE);
@@ -173,7 +173,7 @@ sub create_trace_file {
 
 sub set_trace_file_header {
 	my $self = shift;
-	my $header_file_name = "Trace/header_trace_file.trace";    
+	my $header_file_name = "./../Trace/header_trace_file.trace";    
 	open(H_FILE, '<', $header_file_name) or die "cannot open file $header_file_name";
     while(my $line = <H_FILE>) {
 		$self->add_trace_line($line);	

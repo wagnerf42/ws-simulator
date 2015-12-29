@@ -14,4 +14,4 @@ my $simulator = Simulator->new($tasks_file, $processors);
 
 $simulator->run();
 
-print  $simulator->get_time() ."\n";
+print  $simulator->get_time() ." ";

@@ -16,11 +16,13 @@ sub new {
 
 sub display {
     my $self = shift;
-    print "Task $self->{name} with execution time = $self->{time} and has " . scalar(@{$self->{predecessors}}) ." predecessors \n";
-    print "remaining tasks $self->{remaining_predecessors} ==> @{$self->{predecessors}} \n" if scalar(@{$self->{predecessors}}) > 0 ;
-
-    print "execute processor : $self->{processor}\n" if defined $self->{processor};
-    return;
+    print "Task $self->{name} with execution time = $self->{time} and $self->{remaining_predecessors} predecessors : ";
+	
+	for my $t (values %{$self->{predecessors}}){
+		print $t. " ";
+	}
+	print "\n";
+	return;
 }
 
 sub is_ready {
@@ -33,7 +35,7 @@ sub update_predecessor {
     my $task_finished = shift;
 	my $value = 0;
 	if (exists $self->{predecessors}->{$task_finished}) {
-   		$self->{remaining_predecessors}--;
+  		$self->{remaining_predecessors}--;
         return 1;
     } else {
         return 0;

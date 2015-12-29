@@ -124,7 +124,7 @@ sub load_tasks{
         my @split_line = split(/ /,$line);
         my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
         my @predecessors;
-        @predecessors = @split_line[3..$#split_line-1]; 
+        @predecessors = @split_line[3..$#split_line]; 
 		$task->init_predecessors(\@predecessors);
         $tasks{$task->get_name()} = $task;
     }
@@ -173,7 +173,7 @@ sub create_trace_file {
 
 sub set_trace_file_header {
 	my $self = shift;
-	my $header_file_name = "./../Trace/header_trace_file.trace";    
+	my $header_file_name = "./../Trace/header/header_trace_file.trace";    
 	open(H_FILE, '<', $header_file_name) or die "cannot open file $header_file_name";
     while(my $line = <H_FILE>) {
 		$self->add_trace_line($line);	

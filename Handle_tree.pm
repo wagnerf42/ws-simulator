@@ -14,7 +14,7 @@ sub new {
 	$self->{successors_task} = get_successors($self->{tasks});
 	$self->{init_tasks} = [];
 	return $self;
-
+	
 }
 
 sub handle_tree {
@@ -41,8 +41,8 @@ sub load_tasks{
   		my @predecessors;
         @predecessors = @split_line[3..$#split_line]; 
 		$task->init_predecessors(\@predecessors);
-        $tasks{$task->get_name()} = $task;
-    }
+		$tasks{$task->get_name()} = $task;
+ 	 }
 	return \%tasks;
 }
 

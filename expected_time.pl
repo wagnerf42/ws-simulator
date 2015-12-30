@@ -16,6 +16,7 @@ $handle_tree->handle_tree();
 
 #print "Works : ".$handle_tree->get_works()." = Critical Path ".$handle_tree->get_critical_path()."\n";
 
+
 expected_time($handle_tree->get_works(), $handle_tree->get_critical_path(), $processors_number);
 
 sub expected_time {
@@ -23,7 +24,7 @@ sub expected_time {
 	my $critical_path = shift;
 	my $processors_number = shift;
 	my $expected_time = ($works/$processors_number + $critical_path); 
-	print $expected_time ."\n";
-	return $works/$processors_number + $critical_path;
+	print $expected_time."\n";
+	return $expected_time;
 	
 }

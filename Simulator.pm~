@@ -13,11 +13,10 @@ use Task;
 sub new {
     my $class = shift;
     my $tasks_file = shift;
-    my $processor_numbers = shift;
+    my $self->{processor_numbers} = shift;
     my $self = {};
 	$self->{time} = 0;
     $self->{idle_processors} = [];
-	$self->{processor_numbers} = $processor_numbers;
     $self->{tasks} = load_tasks($tasks_file);
     $self->{remaining_tasks} = scalar(values %{$self->{tasks}});
     $self->{ready_tasks} = [];
@@ -25,7 +24,7 @@ sub new {
     $self->{tasks_file} = $tasks_file;
 	bless $self, $class;
     $self->set_trace_file_header();
-    $self->create_processors($processor_numbers);
+    $self->create_processors($self->{processor_numbers});
     $self->create_init_event();
     return $self;
 }

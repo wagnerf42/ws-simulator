@@ -2,6 +2,7 @@ package Handle_tree;
 
 use strict;
 use warnings;
+use List::Util qw(max sum);
 use Task;
 use Path;
 
@@ -17,17 +18,46 @@ sub new {
 	
 }
 
-sub handle_tree {
+sub initial_tasks {
 	my $self = shift;
-	$self->{paths} = $self->treat_tree($self->{tasks});	
-	return;
+	my @remaining_tasks;
+	for my $task (values(%{$self->{tasks}})){
+		push @remaining_tasks, $task if $task->is_ready();
+	}
+	return @remaining_tasks;
 }
 
-sub get_critical_path {
+sub compute_min_execution_time {
 	my $self = shift;
-	my @sorted_paths = sort {$a->get_time() <=> $b->get_time()} @{$self->{paths}};
-	my $path = pop @sorted_paths;
-	return $path->get_time();
+	my @remaining_tasks = $self->initial_tasks();
+    	# topological sort : associate to each task its min execution time	
+	my %seen_predecessors; # associate to each task the number of predecessors already seen in the topological sort
+	while (@remaining_tasks) {
+        my $task = shift @remaining_tasks;
+        my $predecessors = $task->get_predecessors();
+        my $min_time;
+   	if (@{$predecessors}) {
+		$min_time = max @{[map {$self->{min_execution_time}->{$_} +$self->{tasks}->{$_}->get_time()} @{$predecessors}]};
+        } else {
+            $min_time = 0;
+        }
+        $self->{min_execution_time}->{$task->get_name()} = $min_time;
+        
+	for my $successor (@{$self->{successors_task}->{$task->get_name()}}) {
+	$seen_predecessors{$successor} = 0 unless exists $seen_predecessors{$successor};
+	$seen_predecessors{$successor}++;
+	if ($seen_predecessors{$successor} == scalar(@{$self->{tasks}->{$successor}->get_predecessors()})) {
+	     push @remaining_tasks, $self->{tasks}->{$successor};
+            }
+        }
+    }    
+}
+
+
+sub critical_path {
+	my $self = shift;
+	$self->compute_min_execution_time();				
+	return max @{[map {$self->{min_execution_time}->{$_->get_name()} + $_->get_time()} values(%{$self->{tasks}})]};
 }
 
 sub load_tasks{
@@ -46,38 +76,10 @@ sub load_tasks{
 	return \%tasks;
 }
 
-sub treat_tree {
-	my $self = shift;
-	$self->{works} = 0;
-	my @paths;
-	for my $task_name (keys(%{$self->{tasks}})){
-		$self->{works} += $self->{tasks}->{$task_name}->get_time(); 
-		my @path = $self->get_paths($task_name) if $self->{tasks}->{$task_name}->is_ready();;
-		push @paths, @path;
-	}
-	return \@paths;
-}	
-
-sub get_paths {
-	my $self = shift;
-	my $current_task_name = shift;
-	my @new_paths;
-	if (exists $self->{successors_task}->{$current_task_name}){
-		for my $succ_task_name (@{$self->{successors_task}->{$current_task_name}}){
-			my @paths = $self->get_paths($succ_task_name);
-			for my $path (@paths){	
-				push @new_paths, $path->add_tasks($self->{tasks}->{$current_task_name}); 
-			}			
-		}
-	}else{
-		push @new_paths, Path->new([$current_task_name], $self->{tasks}->{$current_task_name}->get_time());
-	}
-	return @new_paths;
-}
 
 sub get_works {
 	my $self = shift;
-	return $self->{works};
+	return sum @{[map {$_->get_time()} values(%{$self->{tasks}}) ]};
 } 
 
 sub get_successors {

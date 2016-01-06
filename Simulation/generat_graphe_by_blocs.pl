@@ -8,7 +8,7 @@ die "please give processors number " unless $ARGV[0]=~/^\d+$/;
 
 my $processors_number = $ARGV[0];
 my $name = "M_blocs_file";
-my @matrix_size_values = (1000, 2000, 3000, 4000, 5000);
+my @matrix_size_values = (2000, 3000, 4000, 5000);
 my @bloc_size_values = ( 500,  250, 100);
 
 print "M_size B_size W D T_attendu T_simul \n";

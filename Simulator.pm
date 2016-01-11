@@ -10,25 +10,49 @@ use Task;
 use Processor;
 use Task;
 
-sub new {
+sub load {
     my $class = shift;
     my $tasks_file = shift;
     my $processor_numbers = shift;
     my $self = {};
-	$self->{time} = 0;
+    $self->{time} = 0;
     $self->{idle_processors} = [];
-	$self->{processor_numbers} = $processor_numbers;
+    $self->{processor_numbers} = $processor_numbers;
     $self->{tasks} = load_tasks($tasks_file);
+    $self->{successors_task} = get_successors($self->{tasks});
     $self->{remaining_tasks} = scalar(values %{$self->{tasks}});
     $self->{ready_tasks} = [];
     $self->{events} = EventQueue->new();
     $self->{tasks_file} = $tasks_file;
-	bless $self, $class;
+    bless $self, $class;
     $self->set_trace_file_header();
     $self->create_processors($processor_numbers);
     $self->create_init_event();
     return $self;
 }
+
+sub new {
+    my $class = shift;
+    my $tasks = shift;
+    my $processor_numbers = shift;
+    my $tasks_file = shift;
+    my $self = {};
+    $self->{time} = 0;
+    $self->{idle_processors} = [];
+    $self->{processor_numbers} = $processor_numbers;
+    $self->{tasks} = get_tasks($tasks);
+    $self->{successors_task} = get_successors($self->{tasks});
+    $self->{remaining_tasks} = scalar(values %{$self->{tasks}});
+    $self->{ready_tasks} = [];
+    $self->{events} = EventQueue->new();
+    $self->{tasks_file} = $tasks_file;
+    bless $self, $class;
+    $self->set_trace_file_header();
+    $self->create_processors($processor_numbers);
+    $self->create_init_event();
+    return $self;
+}
+
 
 sub create_init_event {
     my $self = shift;
@@ -46,7 +70,7 @@ sub assign_tasks_to_idle_processors {
     my @events;
     while($self->has_ready_tasks() and $self->has_idle_processors()) {
     	my $task = shift @{$self->{ready_tasks}};
- 		my $processor = shift @{$self->{idle_processors}};
+ 	my $processor = shift @{$self->{idle_processors}};
         $processor->{current_task} = $task;
         my $event = $processor->assign_task($task);
    		push @events, $event;
@@ -58,7 +82,7 @@ sub run {
     my $self = shift;
     while ($self->{remaining_tasks} > 0) {
         my $event = $self->{events}->get_event();
-		$self->{time} = $event->get_time();
+	$self->{time} = $event->get_time();
         my @new_events = $event->execute(); 
 		for my $event (@new_events){
 			$self->{events}->add_event($event);
@@ -90,7 +114,6 @@ sub task_finished {
     $self->update_ready_tasks($executed_task->get_name());
 	$processor->{available_files}->{$executed_task->get_name} = $executed_task->get_name;
 	unshift @{$self->{idle_processors}}, $processor;
-
 	my $trace_line = "10 ".$self->get_time()." PS P".$id_processor." Idle \"\" \n";
 	$self->add_trace_line($trace_line);
     return $self->assign_tasks_to_idle_processors();
@@ -100,11 +123,12 @@ sub update_ready_tasks {
     my $self = shift;
     my $executed_task_name = shift;
     my $trace_line = "17 ".$self->get_time()." Pile T 1.00 \n";
-    for my $task (values %{$self->{tasks}}) {
-        my $updated = $task->update_predecessor($executed_task_name);
-        push @{$self->{ready_tasks}}, $task if $task->is_ready() and $updated == 1 ;
-    	$trace_line .= "16 ".$self->get_time()." Pile T 1.00 \n" if $task->is_ready() and $updated == 1; 
+    for my $successor (@{$self->{successors_task}->{$executed_task_name}}) {
+        $self->{tasks}->{$successor}->{remaining_predecessors}--;
+        push @{$self->{ready_tasks}}, $self->{tasks}->{$successor} if $self->{tasks}->{$successor}->is_ready() ;
+    	$trace_line .= "16 ".$self->get_time()." Pile T 1.00 \n" if $self->{tasks}->{$successor}->is_ready() ; 
 	}
+
     $self->add_trace_line($trace_line);
     return;
 }
@@ -121,12 +145,12 @@ sub load_tasks{
     my %tasks;
     open(FILE, '<', $filename) or die "cannot open file $filename";
 	while(my $line = <FILE>) {
-		chomp($line);
+	chomp($line);
         my @split_line = split(/ /,$line);
         my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
         my @predecessors;
         @predecessors = @split_line[3..$#split_line]; 
-		$task->init_predecessors(\@predecessors);
+	$task->init_predecessors(\@predecessors);
         $tasks{$task->get_name()} = $task;
     }
 	
@@ -186,5 +210,32 @@ sub add_trace_line {
 	my $self = shift;
 	my $trace_line = shift;
 	$self->{trace} .= $trace_line; 
+}
+
+sub get_successors {
+	my $tasks = shift;
+	my %successors_task;
+	for my $task (keys(%$tasks)){
+		my $predecessors_tasks = $tasks->{$task}->get_predecessors();
+		for my $p (@$predecessors_tasks){
+				push @{$successors_task{$p}}, $task;
+			}
+		}	
+	return \%successors_task;
+}
+
+sub get_tasks{
+    my $tasks = shift;
+    my %tasks;
+	for my $line (@{$tasks}) {
+        my @split_line = split(/ /,$line);
+        my $task = Task->new($split_line[0], $split_line[1], $split_line[2]);
+        my @predecessors;
+        @predecessors = @split_line[3..$#split_line]; 
+		$task->init_predecessors(\@predecessors);
+        $tasks{$task->get_name()} = $task;
+    }
+	
+	return \%tasks;
 }
 1;

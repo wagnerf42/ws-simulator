@@ -31,6 +31,4 @@ sub execute {
 	my $self = shift;
 	return $self->{processor_receiver}->finish_transfer($self->{predecessor}, $self->{file_size});
 }
-
-
 1;

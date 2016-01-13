@@ -74,7 +74,7 @@ sub matrix_fuse {
 sub matrix_add {
 	my ($out, $a, $b) = @_;
 	print $out->get_name()." ";
-	print (($out->get_size()**2)*4);
+	print (($out->get_size()**2));
 	print " ".$out->get_size()**2;
 	print " ".$a->get_name()." ".$b->get_name()." \n";
 	return;

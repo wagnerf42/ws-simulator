@@ -9,7 +9,7 @@ my $processors_number = $ARGV[0];
 
 my $name = "M_recursivity_file";
 my @matrix_size_values = (1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000);
-my @recursivity_levels = (1, 2, 3, 4, 5);
+my @recursivity_levels = (1, 2, 3, 4, 5, 6, 7);
 
 print "M_size R_level W D T_attendu T_simul \n";
 for my $matrix_size (@matrix_size_values){

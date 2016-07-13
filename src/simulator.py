@@ -8,20 +8,29 @@ from time import clock
 from random import randint, seed
 from heapq import heappush, heappop
 from processor import Processor
+from logger import Logger
+
+INTERNAL_COMMUNICATION_TIME = 1
+EXTERNAL_COMMUNICATION_TIME = 5
 
 class Simulator:
     """
     Simulation
     """
 
-    internal_communication_time = 1
-    external_communication_time = 5
+
+    STEAL = "Stealing"
+    IDLE = "Idle"
+    EXEC = "Executing"
+    REC = "Receiving"
+    SEND = "Sending"
 
     def __init__(self, total_work, processors_number):
         self.time = 0
         self.total_work = total_work
         self.processors_number = processors_number
         self.processors = list()
+        self.logger = Logger("../Trace/paje-1.89/trace.trace")
         self.distances = two_clusters_topology(processors_number)
         self.events = list()
         # associate to each processor the next valid event
@@ -29,6 +38,7 @@ class Simulator:
         # cannot remove
         self.valid_events = dict()
         self.init_processors()
+        self.platform_definition_logger(0, 2)
 
     def run(self):
         """
@@ -38,6 +48,8 @@ class Simulator:
             event = self.next_event()
             self.time = event.time
             event.execute()
+        self.logger.paje_end_of_logger(self.time, 2,
+                                       self.processors_number)
 
     def add_event(self, event):
         """
@@ -63,11 +75,13 @@ class Simulator:
         """
         cree l'ensemble des processor
         """
-        self.processors.append(Processor(0, self, self.total_work))
+        cluster = cluster_number(0, self.processors_number)
+        self.processors.append(Processor(0, cluster, self, self.total_work))
         for id_processor in range(1, self.processors_number):
-            self.processors.append(Processor(id_processor, self))
+            cluster = cluster_number(id_processor, self.processors_number)
+            self.processors.append(Processor(id_processor, cluster, self))
 
-    def communication_time(self, source, destination):
+    def communication_end_time(self, source, destination):
         """
         return time when communication between source and destination
         processors will end if we start it now.
@@ -85,6 +99,33 @@ class Simulator:
         else:
             return self.processors[random_processor]
 
+    def platform_definition_logger(self, time, clusters_number):
+        """
+        log to create platform definition,
+            clusters and processors with their names and numbers
+        """
+        # Create Clusters.
+        for id_cluster in range(clusters_number):
+            self.logger.paje_add_cluster(time, id_cluster)
+
+        # Create Processors.
+        for processor in self.processors:
+            self.logger.paje_add_processor(time, processor)
+
+        # set (update) intial state Processors.
+        for processor in self.processors:
+            if processor.number == 0:
+                self.logger.paje_update_processor_state(time, processor,
+                                                        self.EXEC)
+            else:
+                self.logger.paje_update_processor_state(time, processor,
+                                                        self.IDLE)
+        # set intial  work Processors.
+        for processor in self.processors:
+            if processor.number == 0:
+                self.logger.paje_set_work(0.1, processor, self.total_work)
+            else:
+                self.logger.paje_set_work(0.1, processor)
 
 def cluster_number(processor_id, processors_number):
     """
@@ -109,9 +150,9 @@ def two_clusters_topology(processors_number):
             destination_cluster = cluster_number(destination_processor,
                                                  processors_number)
             if start_cluster == destination_cluster:
-                distances_from_start.append(1)
+                distances_from_start.append(INTERNAL_COMMUNICATION_TIME)
             else:
-                distances_from_start.append(10)
+                distances_from_start.append(EXTERNAL_COMMUNICATION_TIME)
 
         distances.append(distances_from_start)
 
@@ -126,20 +167,30 @@ def main(processors_number, work):
     simulator.run()
     print("total work ", simulator.time)
 
-if __name__ == "__main__":
 
+def parse_arguments():
+    """
+    parse arguments and launch simulations.
+    """
     if __debug__:
         current_time = clock()
+    #seed(0.084152) + 0.077458 p12 (send, rec, executing)
+    #seed(0.07478) special case
         seed(current_time)
         print("seeding with", current_time)
 
     for argument in sys.argv:
         if argument == "--help":
-            print("no help yet !")
+            print("usage: {} Processors_Number Total_Work".format(
+                sys.argv[0]))
             sys.exit(1)
     if len(sys.argv) < 3:
-        print("please give following args Processor Number and Total Work")
+        print("usage: {} Processors_Number Total_Work".format(
+            sys.argv[0]))
     else:
         processors_number = int(sys.argv[1])
         total_work = int(sys.argv[2])
         main(processors_number, total_work)
+
+if __name__ == "__main__":
+    parse_arguments()

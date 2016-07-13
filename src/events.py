@@ -79,7 +79,7 @@ class StealAnswerEvent(Event):
     his victim. it contains the stolen work amount or 0 in case of
     failure.
     """
-    def __init__(self, reply_time, victim, stealer, stolen_work):
+    def __init__(self, reply_time, stealer, victim, stolen_work):
         super().__init__(reply_time, stealer, 2)
         self.victim = victim
         self.stolen_work = stolen_work
@@ -90,7 +90,7 @@ class StealAnswerEvent(Event):
         """
         super().execute()
         #self.victim.frees_network()
-        self.processor.steal_answer(self.stolen_work)
+        self.processor.steal_answer(self.stolen_work, self.victim)
 
 
     def display(self):

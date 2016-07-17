@@ -4,8 +4,6 @@ module des evenemenet
 """
 # pylint: disable=too-few-public-methods
 
-LOGGING_ENABLED = False
-
 class Event():
     """
     Base event class for all events in the system.
@@ -22,14 +20,6 @@ class Event():
     def __eq__(self, other):
         return id(self) == id(other)
 
-    def execute(self):
-        """
-        log information when executing event.
-        """
-        # pylint: disable=no-member
-        if __debug__:
-            if LOGGING_ENABLED:
-                self.display()
 
 class IdleEvent(Event):
     """
@@ -42,7 +32,6 @@ class IdleEvent(Event):
         """
         execute Idle Event
         """
-        super().execute()
         self.processor.idle_event()
 
     def display(self):
@@ -63,7 +52,6 @@ class StealRequestEvent(Event):
         """
         execute steal_request_event
         """
-        super().execute()
         self.victim.answer_steal_request(self.processor)
 
     def display(self):
@@ -88,7 +76,6 @@ class StealAnswerEvent(Event):
         """
         execute Steal Answer
         """
-        super().execute()
         #self.victim.frees_network()
         self.processor.steal_answer(self.stolen_work, self.victim)
 

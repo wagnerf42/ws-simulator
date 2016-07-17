@@ -4,7 +4,8 @@ the processor module provides a Processor class
 holding processors states for the simulation.
 """
 from math import ceil
-from events import IdleEvent, StealAnswerEvent, StealRequestEvent
+import wssim
+from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
 
 class Processor:
     """
@@ -45,9 +46,10 @@ class Processor:
         if self.work > 0:
             self.work -= advanced_work
             self.simulator.total_work -= advanced_work
-            self.simulator.logger.paje_sub_work(self.current_time, self,
-                                                advanced_work)
             assert self.work >= 0  # only true if speed == 1
+            if __debug__:
+                if wssim.LOGGING:
+                    self.simulator.logger.sub_work(self, advanced_work)
 
 
     def answer_steal_request(self, stealer):
@@ -59,9 +61,9 @@ class Processor:
         self.update_time()
         reply_time = self.simulator.communication_end_time(self, stealer)
 
-        self.simulator.logger.paje_end_communication(self.current_time,
-                                                     stealer, self,
-                                                     "WR")
+        if __debug__:
+            if wssim.LOGGING:
+                self.simulator.logger.end_communication(stealer, self, "WReq")
 
         if self.current_time >= self.network_time:
             # we can use network
@@ -73,14 +75,14 @@ class Processor:
                     self.work // self.speed
                 self.simulator.add_event(IdleEvent(becoming_idle_time, self))
 
-                self.simulator.logger.paje_push_processor_state(
-                    self.current_time, self, self.simulator.SEND)
-                self.simulator.logger.paje_update_processor_state(
-                    self.current_time, stealer, self.simulator.REC)
-                self.simulator.logger.paje_sub_work(self.current_time, self,
-                                                    stolen_work)
-                self.simulator.logger.paje_add_work(self.current_time,
-                                                    stealer, stolen_work)
+                if __debug__:
+                    if wssim.LOGGING:
+                        self.simulator.logger.push_processor_state(
+                            self, new_state="Sending")
+                        self.simulator.logger.update_processor_state(
+                            stealer, new_state="Receiving")
+                        self.simulator.logger.sub_work(self, stolen_work)
+                        self.simulator.logger.add_work(stealer, stolen_work)
         else:
             stolen_work = 0
 
@@ -88,9 +90,10 @@ class Processor:
             StealAnswerEvent(reply_time, stealer, self, stolen_work)
         )
 
-        self.simulator.logger.paje_start_communication(self.current_time,
-                                                       self, stealer,
-                                                       "Response")
+        if __debug__:
+            if wssim.LOGGING:
+                self.simulator.logger.start_communication(
+                    self, stealer, data="Response")
 
     def idle_event(self):
         """
@@ -99,9 +102,11 @@ class Processor:
         self.update_time()
         assert self.work == 0
         self.start_stealing()
-        self.simulator.logger.paje_update_processor_state(self.current_time,
-                                                          self,
-                                                          self.simulator.STEAL)
+
+        if __debug__:
+            if wssim.LOGGING:
+                self.simulator.logger.update_processor_state(
+                    self, new_state="Stealing")
 
     def start_stealing(self):
         """
@@ -112,8 +117,10 @@ class Processor:
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
-        self.simulator.logger.paje_start_communication(self.current_time,
-                                                       self, victim, "WR")
+        if __debug__:
+            if wssim.LOGGING:
+                self.simulator.logger.start_communication(self, victim,
+                                                          "WReq")
 
 
     def steal_answer(self, work, victim):
@@ -130,11 +137,14 @@ class Processor:
                 IdleEvent(self.current_time + ceil(self.work // self.speed),
                           self)
             )
-            self.simulator.logger.paje_update_processor_state(
-                self.current_time, self, self.simulator.EXEC)
-            self.simulator.logger.paje_pop_processor_state(
-                self.current_time, victim)
+            if __debug__:
+                if wssim.LOGGING:
+                    self.simulator.logger.update_processor_state(
+                        self, new_state="Executing")
+                    self.simulator.logger.pop_processor_state(victim)
 
-        self.simulator.logger.paje_end_communication(self.current_time,
-                                                     victim, self, "Response")
+        if __debug__:
+            if wssim.LOGGING:
+                self.simulator.logger.end_communication(victim, self,
+                                                        data="Response")
 

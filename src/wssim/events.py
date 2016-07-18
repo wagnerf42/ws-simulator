@@ -14,11 +14,28 @@ class Event():
         self.processor = processor
         self.event_type = event_type
 
+    def execute(self):
+        """
+        log some information on event executions.
+        """
+        if __debug__:
+            print(self)
+
+    def __str__(self):
+        return "t={} p={} type:{}".format(self.time, self.processor.number,
+                                          self.event_type)
+
     def __lt__(self, other):
         return self.time < other.time
 
     def __eq__(self, other):
-        return id(self) == id(other)
+        # only one event for each processor
+        answer = self.processor.number == other.processor.number
+        print("comparing", self, "and", other, "->", answer)
+        return answer
+
+    def __hash__(self):
+        return hash(self.processor.number)
 
 
 class IdleEvent(Event):
@@ -26,12 +43,13 @@ class IdleEvent(Event):
     Class of Idle_event
     """
     def __init__(self, becomming_idle_time, processor):
-        super().__init__(becomming_idle_time, processor, 0)
+        super().__init__(becomming_idle_time, processor, "IDLE")
 
     def execute(self):
         """
         execute Idle Event
         """
+        super().execute()
         self.processor.idle_event()
 
     def display(self):
@@ -45,13 +63,14 @@ class StealRequestEvent(Event):
     a steal request event happens when a victim receives a steal request.
     """
     def __init__(self, steal_time, stealer, victim):
-        super().__init__(steal_time, stealer, 1)
+        super().__init__(steal_time, stealer, "REQUEST")
         self.victim = victim
 
     def execute(self):
         """
         execute steal_request_event
         """
+        super().execute()
         self.victim.answer_steal_request(self.processor)
 
     def display(self):
@@ -68,7 +87,7 @@ class StealAnswerEvent(Event):
     failure.
     """
     def __init__(self, reply_time, stealer, victim, stolen_work):
-        super().__init__(reply_time, stealer, 2)
+        super().__init__(reply_time, stealer, "ANSWER")
         self.victim = victim
         self.stolen_work = stolen_work
 
@@ -76,6 +95,7 @@ class StealAnswerEvent(Event):
         """
         execute Steal Answer
         """
+        super().execute()
         #self.victim.frees_network()
         self.processor.steal_answer(self.stolen_work, self.victim)
 

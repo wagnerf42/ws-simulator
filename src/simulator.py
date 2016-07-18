@@ -6,10 +6,9 @@ Simulation System configuration
 import sys
 from time import clock
 from random import randint, seed
-from heapq import heappush, heappop
+from sortedcontainers import SortedDict
 from wssim.processor import Processor
 from wssim.logger import Logger
-from sortedcontainers import SortedDict
 
 INTERNAL_COMMUNICATION_TIME = 1
 EXTERNAL_COMMUNICATION_TIME = 5
@@ -23,12 +22,11 @@ class Simulator:
         self.total_work = total_work
         self.logger = Logger("../Trace/paje-1.89/trace.trace", self)
         self.distances = two_clusters_topology(processors_number)
-        self.events = list()
+        self.events = SortedDict()
         self.processors = list()
         # associate to each processor the next valid event
         # we do that since the heap contains cancelled events which we
         # cannot remove
-        self.valid_events = dict()
         self.init_processors(processors_number)
         self.platform_definition_logger(2)
 
@@ -37,6 +35,7 @@ class Simulator:
         start Simulation of the system
         """
         while self.total_work > 0:
+            assert len(self.events) == len(self.processors)
             event = self.next_event()
             self.time = event.time
             event.execute()
@@ -48,19 +47,23 @@ class Simulator:
         add given event to system.
         pre-requisite : event's time is >= simulator's time
         """
-        heappush(self.events, event)
-        # newest event is always the valid one
-        assert isinstance(event.processor, Processor)
-        self.valid_events[event.processor] = event
+        print("adding", event)
+        print("before add", [str(p) for p in self.events.values()])
+        if event in self.events:
+            print(event)
+            del self.events[event]
+        self.events[event] = event
+        print("after add", [str(p) for p in self.events.values()])
 
     def next_event(self):
         """
         returns the next valid event to take place.
         """
-        # loop discarding all cancelled events
-        event = heappop(self.events)
-        while event != self.valid_events[event.processor]:
-            event = heappop(self.events)
+        print("before del", [str(p) for p in self.events.values()])
+        assert len(self.events) > 0
+        _, event = self.events.popitem(last=False)
+        print("after del", [str(p) for p in self.events.values()])
+        print("event at ", event.time)
         return event
 
     def init_processors(self, processors_number):
@@ -166,8 +169,8 @@ def parse_arguments():
     """
     if __debug__:
         current_time = clock()
-    #seed(0.084152) + 0.077458 p12 (send, rec, executing)
-    #seed(0.07478) special case
+        #seed(0.084152) + 0.077458 p12 (send, rec, executing)
+        #seed(0.07478) special case
         seed(current_time)
         print("seeding with", current_time)
 
@@ -176,6 +179,7 @@ def parse_arguments():
             print("usage: {} Processors_Number Total_Work".format(
                 sys.argv[0]))
             sys.exit(1)
+
     if len(sys.argv) < 3:
         print("usage: {} Processors_Number Total_Work".format(
             sys.argv[0]))

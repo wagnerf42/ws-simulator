@@ -3,9 +3,11 @@
 the processor module provides a Processor class
 holding processors states for the simulation.
 """
-from math import ceil
-import wssim
+from random import uniform, choice
+from math import ceil, isclose
+from sortedcontainers import SortedListWithKey
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
+
 
 class Processor:
     """
@@ -26,7 +28,7 @@ class Processor:
         self.current_time = 0
         self.network_time = 0  # network is in use until this time
         self.cluster = cluster
-        simulator.add_event(IdleEvent(work//self.speed, self))
+        self.steal_probabilities = []
 
     def __hash__(self):
         return hash(self.number)
@@ -48,7 +50,7 @@ class Processor:
             self.simulator.total_work -= advanced_work
             assert self.work >= 0  # only true if speed == 1
             if __debug__:
-                if wssim.LOGGING:
+                if self.simulator.log_file is not None:
                     self.simulator.logger.sub_work(self, advanced_work)
 
 
@@ -62,7 +64,7 @@ class Processor:
         reply_time = self.simulator.communication_end_time(self, stealer)
 
         if __debug__:
-            if wssim.LOGGING:
+            if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
 
         if self.current_time >= self.network_time:
@@ -76,7 +78,7 @@ class Processor:
                 self.simulator.add_event(IdleEvent(becoming_idle_time, self))
 
                 if __debug__:
-                    if wssim.LOGGING:
+                    if self.simulator.log_file is not None:
                         self.simulator.logger.push_processor_state(
                             self, new_state="Sending")
                         self.simulator.logger.update_processor_state(
@@ -91,7 +93,7 @@ class Processor:
         )
 
         if __debug__:
-            if wssim.LOGGING:
+            if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(
                     self, stealer, data="Response")
 
@@ -100,11 +102,14 @@ class Processor:
         update time, start stealing.
         """
         self.update_time()
-        assert self.work == 0
+        if __debug__:
+            if self.work != 0:
+                print("work is", self.work)
+                raise Exception("work non zero")
         self.start_stealing()
 
         if __debug__:
-            if wssim.LOGGING:
+            if self.simulator.log_file is not None:
                 self.simulator.logger.update_processor_state(
                     self, new_state="Stealing")
 
@@ -112,13 +117,14 @@ class Processor:
         """
         start stealing, update simulator.
         """
-        victim = self.simulator.random_victim_not(self.number)
+        #victim = self.simulator.random_victim_not(self.number)
+        victim = self.select_victim()
         steal_time = self.simulator.communication_end_time(self, victim)
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
         if __debug__:
-            if wssim.LOGGING:
+            if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
 
@@ -138,13 +144,57 @@ class Processor:
                           self)
             )
             if __debug__:
-                if wssim.LOGGING:
+                if self.simulator.log_file is not None:
                     self.simulator.logger.update_processor_state(
                         self, new_state="Executing")
                     self.simulator.logger.pop_processor_state(victim)
 
         if __debug__:
-            if wssim.LOGGING:
+            if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(victim, self,
                                                         data="Response")
 
+    def compute_stealing_probabilities(self, processors):
+        """
+        compute probabilities used for stealing operations.
+        """
+        remaining_processors = SortedListWithKey(processors,
+                                                 key=lambda p: p[0])
+        target = sum([p[0] for p in processors])/len(processors)
+        for _ in range(len(processors)):
+            min_probability, min_processor = remaining_processors.pop(0)
+            if isclose(min_probability, target):
+                self.steal_probabilities.append(
+                    ((target, min_processor), (0, None))
+                )
+            else:
+                assert len(remaining_processors) > 0
+                max_probability, max_processor = remaining_processors.pop()
+                assert max_probability + min_probability > target or\
+                    isclose(max_probability + min_probability, target)
+                needed = target - min_probability
+                remaining_processors.add((max_probability - needed,
+                                          max_processor))
+                self.steal_probabilities.append(
+                    ((min_probability, min_processor),
+                     (needed, max_processor))
+                )
+
+
+    def select_victim(self):
+        """
+        Select victim with probability defined in steal_probabilities
+        - : select tuples frome steal_probabilities
+        - : compute target from probabilities selected
+        - : select range_value with uniform random between 0 and target
+        - : return processor with probabilities less or equal range_value
+        """
+        tuples = choice(self.steal_probabilities)
+
+        target = sum([v[0] for v in tuples])
+        range_value = uniform(0, target)
+
+        if range_value < tuples[0][0] or isclose(range_value, tuples[0][0]):
+            return tuples[0][1]
+        else:
+            return tuples[1][1]

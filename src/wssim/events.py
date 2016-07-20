@@ -2,6 +2,7 @@
 """
 module des evenemenet
 """
+import wssim
 # pylint: disable=too-few-public-methods
 
 class Event():
@@ -19,7 +20,8 @@ class Event():
         log some information on event executions.
         """
         if __debug__:
-            print(self)
+            if wssim.LOGGING:
+                print(self)
 
     def __str__(self):
         return "t={} p={} type:{}".format(self.time, self.processor.number,
@@ -30,12 +32,7 @@ class Event():
 
     def __eq__(self, other):
         # only one event for each processor
-        answer = self.processor.number == other.processor.number
-        print("comparing", self, "and", other, "->", answer)
-        return answer
-
-    def __hash__(self):
-        return hash(self.processor.number)
+        return id(self) == id(other)
 
 
 class IdleEvent(Event):

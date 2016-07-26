@@ -3,7 +3,7 @@
 the processor module provides a Processor class
 holding processors states for the simulation.
 """
-from random import uniform, choice
+from random import uniform, randint
 from math import ceil, isclose
 from sortedcontainers import SortedListWithKey
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
@@ -72,6 +72,10 @@ class Processor:
             stolen_work = self.work // 2
             self.work -= stolen_work
             if stolen_work > 0:
+                if self.cluster == stealer.cluster:
+                    self.simulator.steal_info["SIWR"].append(1)
+                else:
+                    self.simulator.steal_info["SEWR"].append(1)
                 self.network_time = reply_time
                 becoming_idle_time = self.current_time + \
                     self.work // self.speed
@@ -107,7 +111,6 @@ class Processor:
                 print("work is", self.work)
                 raise Exception("work non zero")
         self.start_stealing()
-
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.update_processor_state(
@@ -123,10 +126,15 @@ class Processor:
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
+        if self.cluster == victim.cluster:
+            self.simulator.steal_info["IWR"].append(1)
+        else:
+            self.simulator.steal_info["EWR"].append(1)
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
+
 
 
     def steal_answer(self, work, victim):
@@ -183,18 +191,19 @@ class Processor:
 
     def select_victim(self):
         """
-        Select victim with probability defined in steal_probabilities
-        - : select tuples frome steal_probabilities
-        - : compute target from probabilities selected
-        - : select range_value with uniform random between 0 and target
-        - : return processor with probabilities less or equal range_value
+        select a random target.
+        only work on two clusters.
         """
-        tuples = choice(self.steal_probabilities)
-
-        target = sum([v[0] for v in tuples])
-        range_value = uniform(0, target)
-
-        if range_value < tuples[0][0] or isclose(range_value, tuples[0][0]):
-            return tuples[0][1]
+        if uniform(0, 1) < self.simulator.remote_steal_probability:
+            target_cluster = 1 - self.cluster
         else:
-            return tuples[1][1]
+            target_cluster = self.cluster
+        processors_number = len(self.simulator.processors)
+        cluster_sizes = [processors_number//2]
+        cluster_sizes.append(processors_number - cluster_sizes[0])
+        cluster_starts = [0, cluster_sizes[0]]
+        target_number = self.number
+        while target_number == self.number:
+            target_number = cluster_starts[target_cluster] +\
+                randint(0, cluster_sizes[target_cluster]-1)
+        return self.simulator.processors[target_number]

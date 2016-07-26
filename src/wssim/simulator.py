@@ -2,6 +2,7 @@
 provides Simulator class containing the global simulation state.
 """
 from heapq import heappush, heappop
+from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
 from wssim.events import IdleEvent
@@ -11,16 +12,12 @@ class Simulator:
     """
     Simulation
     """
-    def __init__(self, processors_number, remote_steal_probability, log_file):
-        print("#processors:{} remote_steal_proba:{} \
-              remote_steal_latency:{} ".format(
-                  processors_number, remote_steal_probability,
-                  wssim.REMOTE_STEAL_LATENCY
-              ))
+    def __init__(self, processors_number, log_file):
         self.log_file = log_file
         self.time = 0
         self.total_work = 0
         self.logger = None
+        self.remote_steal_probability = None
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
@@ -32,12 +29,12 @@ class Simulator:
         # cannot remove
         self.valid_events = dict()
         self.init_processors(processors_number)
-        self.init_stealing_probabilities(remote_steal_probability)
+        self.steal_info = defaultdict(list)
         if __debug__:
             if self.log_file is not None:
                 self.platform_definition_logger(2)
 
-    def reset(self, work):
+    def reset(self, work, remote_steal_probability):
         """
         sets work, create all initial events
         """
@@ -45,6 +42,8 @@ class Simulator:
         self.events.clear()
         self.total_work = work
         self.time = 0
+        self.remote_steal_probability = remote_steal_probability
+        # self.init_stealing_probabilities(remote_steal_probability)
         for index, processor in enumerate(self.processors):
             processor.current_time = 0
             processor.network_time = 0

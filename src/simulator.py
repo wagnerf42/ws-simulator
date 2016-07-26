@@ -6,7 +6,6 @@ Simulation System configuration
 import argparse
 from random import seed
 from time import clock
-import numpy
 from wssim.simulator import Simulator
 from wssim import activate_logs, init_remote_latency, REMOTE_STEAL_LATENCY
 
@@ -59,21 +58,21 @@ def main():
               .format(arguments.processors,
                       REMOTE_STEAL_LATENCY,
                       arguments.remote_steal_probability))
-        parse(simulator, arguments)
+        run(simulator, arguments)
     else:
-        for remote_steal_probability in numpy.arange(
-                arguments.prbabilities_config[0],
-                arguments.prbabilities_config[1],
-                arguments.prbabilities_config[2]):
-            arguments.remote_steal_probability = remote_steal_probability
+        proba_start, proba_end, proba_step = arguments.prbabilities_config
+        probability = proba_start
+        while probability <= proba_end:
+            arguments.remote_steal_probability = probability
             print("#processors:{} remote_steal_latency:{}\
                   remote_steal_proba:{}".format(
                       arguments.processors,
                       REMOTE_STEAL_LATENCY,
                       arguments.remote_steal_probability))
-            parse(simulator, arguments)
+            run(simulator, arguments)
+            probability += proba_step
 
-def parse(simulator, arguments):
+def run(simulator, arguments):
     """
     compute simulation for one probability
     """

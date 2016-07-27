@@ -157,6 +157,17 @@ class Simulator:
             processor.compute_stealing_probabilities(probabilities)
 
 
+    def update_latency(self, new_latency):
+        """
+        update latency in the distance matrix
+        """
+        for start_processor in range(len(self.processors)):
+            for destination_processor in range(len(self.processors)):
+                if self.distances[start_processor][destination_processor]\
+                        != 1:
+                    self.distances[start_processor][destination_processor]\
+                        = new_latency
+
 def cluster_number(processor_id, processors_number):
     """
     return cluster id for given processor

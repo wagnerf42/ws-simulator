@@ -3,7 +3,6 @@
 the processor module provides a Processor class
 holding processors states for the simulation.
 """
-from random import uniform, randint
 from math import ceil, isclose
 from sortedcontainers import SortedListWithKey
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
@@ -121,7 +120,9 @@ class Processor:
         start stealing, update simulator.
         """
         #victim = self.simulator.random_victim_not(self.number)
-        victim = self.select_victim()
+        victim = self.simulator.processors[
+            self.simulator.topology.select_victim_not(self.number)
+        ]
         steal_time = self.simulator.communication_end_time(self, victim)
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
@@ -134,8 +135,6 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
-
-
 
     def steal_answer(self, work, victim):
         """
@@ -187,23 +186,3 @@ class Processor:
                     ((min_probability, min_processor),
                      (needed, max_processor))
                 )
-
-
-    def select_victim(self):
-        """
-        select a random target.
-        only work on two clusters.
-        """
-        if uniform(0, 1) < self.simulator.remote_steal_probability:
-            target_cluster = 1 - self.cluster
-        else:
-            target_cluster = self.cluster
-        processors_number = len(self.simulator.processors)
-        cluster_sizes = [processors_number//2]
-        cluster_sizes.append(processors_number - cluster_sizes[0])
-        cluster_starts = [0, cluster_sizes[0]]
-        target_number = self.number
-        while target_number == self.number:
-            target_number = cluster_starts[target_cluster] +\
-                randint(0, cluster_sizes[target_cluster]-1)
-        return self.simulator.processors[target_number]

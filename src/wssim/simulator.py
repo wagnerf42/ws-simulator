@@ -6,22 +6,21 @@ from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
 from wssim.events import IdleEvent
-import wssim
 
 class Simulator:
     """
     Simulation
     """
-    def __init__(self, processors_number, log_file):
+    def __init__(self, processors_number, log_file, topology):
         self.log_file = log_file
         self.time = 0
         self.total_work = 0
         self.logger = None
+        self.topology = topology
         self.remote_steal_probability = None
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
-        self.distances = two_clusters_topology(processors_number)
         self.events = list()
         self.processors = list()
         # associate to each processor the next valid event
@@ -34,7 +33,7 @@ class Simulator:
             if self.log_file is not None:
                 self.platform_definition_logger(2)
 
-    def reset(self, work, remote_steal_probability):
+    def reset(self, work):
         """
         sets work, create all initial events
         """
@@ -42,7 +41,6 @@ class Simulator:
         self.events.clear()
         self.total_work = work
         self.time = 0
-        self.remote_steal_probability = remote_steal_probability
         # self.init_stealing_probabilities(remote_steal_probability)
         for index, processor in enumerate(self.processors):
             processor.current_time = 0
@@ -92,10 +90,10 @@ class Simulator:
         """
         cree l'ensemble des processor
         """
-        cluster = cluster_number(0, processors_number)
+        cluster = self.topology.cluster_number(0)
         self.processors.append(Processor(0, cluster, self, self.total_work))
         for id_processor in range(1, processors_number):
-            cluster = cluster_number(id_processor, processors_number)
+            cluster = self.topology.cluster_number(id_processor)
             self.processors.append(Processor(id_processor, cluster, self))
 
     def communication_end_time(self, source, destination):
@@ -103,7 +101,8 @@ class Simulator:
         return time when communication between source and destination
         processors will end if we start it now.
         """
-        return self.time + self.distances[source.number][destination.number]
+        return self.time +\
+            self.topology.distance(source.number, destination.number)
 
     def platform_definition_logger(self, clusters_number):
         """
@@ -155,46 +154,3 @@ class Simulator:
                         /cluster_sizes[other_processor.cluster]
                 probabilities.append((probability, other_processor))
             processor.compute_stealing_probabilities(probabilities)
-
-
-    def update_latency(self, new_latency):
-        """
-        update latency in the distance matrix
-        """
-        for start_processor in range(len(self.processors)):
-            for destination_processor in range(len(self.processors)):
-                if self.distances[start_processor][destination_processor]\
-                        != 1:
-                    self.distances[start_processor][destination_processor]\
-                        = new_latency
-
-def cluster_number(processor_id, processors_number):
-    """
-    return cluster id for given processor
-    """
-    if processor_id < processors_number // 2:
-        return 0
-    else:
-        return 1
-
-def two_clusters_topology(processors_number):
-    """
-    return matrix containing for line i, column j
-    the cost in time for communicating between processor
-    number i and processor number j in two clusters topology.
-    """
-    distances = []
-    for start_processor in range(processors_number):
-        start_cluster = cluster_number(start_processor, processors_number)
-        distances_from_start = []
-        for destination_processor in range(processors_number):
-            destination_cluster = cluster_number(destination_processor,
-                                                 processors_number)
-            if start_cluster == destination_cluster:
-                distances_from_start.append(wssim.LOCAL_STEAL_LATENCY)
-            else:
-                distances_from_start.append(wssim.REMOTE_STEAL_LATENCY)
-
-        distances.append(distances_from_start)
-
-    return distances

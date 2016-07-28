@@ -4,11 +4,21 @@ Simulation System configuration
 """
 
 import argparse
+from math import floor
 from random import seed
 from time import clock
-import wssim
 from wssim.simulator import Simulator
-from wssim import activate_logs, init_remote_latency
+from wssim import activate_logs
+from wssim.topology.clusters import Topology
+
+
+def floating_range(start, end, step):
+    """
+    return iterator from start to end with given step.
+    """
+    for iteration in range(1+floor((end-start)/step)):
+        yield start + iteration * step
+
 
 def main():
     """
@@ -19,7 +29,7 @@ def main():
     parser.add_argument("-rsp", dest="remote_steal_probability",
                         default=0.25, type=float,\
                         help="probability of stealing remotely")
-    parser.add_argument('-rspconf', nargs=3, dest="prbabilities_config",
+    parser.add_argument('-rspconf', nargs=3, dest="probabilities_config",
                         type=float, help="interval config of \
                         stealing remotely probabilities ,\
                         (-rspconf min_probability max_probability step)")
@@ -53,77 +63,38 @@ def main():
     if arguments.debug:
         activate_logs()
 
-    if arguments.prbabilities_config and arguments.latencies_config:
-        print("you can't use -lconf:{} and -rsps:{} in the same time".format(
-            arguments.prbabilities_config, arguments.latencies_conf))
-
+    platform = Topology(arguments.processors)
     simulator = Simulator(arguments.processors,
-                          arguments.log_file)
+                          arguments.log_file, platform)
 
-
-    if not arguments.prbabilities_config and not arguments.latencies_config:
-        print("#processors:{} remote_steal_latency:{}\
-              remote_steal_proba:{}"\
-              .format(arguments.processors,
-                      wssim.REMOTE_STEAL_LATENCY,
-                      arguments.remote_steal_probability))
-        run_probability(simulator, arguments)
-    elif arguments.prbabilities_config:
-        proba_start, proba_end, proba_step = arguments.prbabilities_config
-        probability = proba_start
-        while probability <= proba_end:
-            arguments.remote_steal_probability = probability
-            print("#processors:{} remote_steal_latency:{}\
-                  remote_steal_proba:{}".format(
-                      arguments.processors,
-                      wssim.REMOTE_STEAL_LATENCY,
-                      arguments.remote_steal_probability))
-            run_probability(simulator, arguments)
-            probability += proba_step
+    if not arguments.probabilities_config:
+        probabilities = [arguments.remote_steal_probability]
     else:
-        latency_start, latency_end, latency_step = arguments.latencies_config
-        for latency in range(latency_start, latency_end, latency_step):
-            init_remote_latency(latency)
-            simulator.update_latency(latency)
-            print("#processors:{} remote_steal_latency:{}\
-                  remote_steal_proba:{}".format(
-                      arguments.processors,
-                      wssim.REMOTE_STEAL_LATENCY,
-                      arguments.remote_steal_probability))
-            run_latency(simulator, arguments)
+        probabilities = list(floating_range(*arguments.probabilities_config))
 
-def run_probability(simulator, arguments):
-    """
-    compute simulation for one probability
-    """
-    for _ in range(arguments.runs):
-        simulator.reset(arguments.work, arguments.remote_steal_probability)
-        simulator.run()
-        print(arguments.remote_steal_probability, simulator.time)
-       # print("RSP:{} time:{} IWR:{} EWR:{} SIWR:{} SEWR:{}".format(
-       #     arguments.remote_steal_probability, simulator.time,
-       #     len(simulator.steal_info["IWR"]),
-       #     len(simulator.steal_info["EWR"]),
-       #     len(simulator.steal_info["SIWR"]),
-       #     len(simulator.steal_info["SEWR"])
-       # ))
+    if not arguments.latencies_config:
+        latencies = [arguments.latency]
+    else:
+        latencies = list(floating_range(*arguments.latencies_config))
 
+    print("#WORK: {}, PROCESSORS: {}, RUNS: {}".format(
+        arguments.work,
+        arguments.processors,
+        arguments.runs
+    ))
+    print("#probability\tremote latency\trunning time")
 
-def run_latency(simulator, arguments):
-    """
-    compute simulation for one probability
-    """
-    for _ in range(arguments.runs):
-        simulator.reset(arguments.work, arguments.remote_steal_probability)
-        simulator.run()
-        print(wssim.REMOTE_STEAL_LATENCY, simulator.time)
-       # print("RSP:{} time:{} IWR:{} EWR:{} SIWR:{} SEWR:{}".format(
-       #     arguments.remote_steal_probability, simulator.time,
-       #     len(simulator.steal_info["IWR"]),
-       #     len(simulator.steal_info["EWR"]),
-       #     len(simulator.steal_info["SIWR"]),
-       #     len(simulator.steal_info["SEWR"])
-       # ))
+    for probability in probabilities:
+        arguments.probability = probability
+        simulator.topology.remote_steal_probability = probability
+        for latency in latencies:
+            simulator.topology.update_remote_latency(latency)
+            for _ in range(arguments.runs):
+                simulator.reset(arguments.work)
+                simulator.run()
+                print("{}\t{}\t{}".format(probability,
+                                          latency, simulator.time))
+
 
 if __name__ == "__main__":
     main()

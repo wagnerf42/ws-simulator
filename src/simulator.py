@@ -9,7 +9,8 @@ from random import seed
 from time import clock
 from wssim.simulator import Simulator
 from wssim import activate_logs
-from wssim.topology.clusters import Topology
+from wssim.topology.cluster import Topology
+#from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -27,7 +28,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="simulate work stealing algorithm")
     parser.add_argument("-rsp", dest="remote_steal_probability",
-                        default=0.25, type=float,\
+                        default=0.5, type=float,\
                         help="probability of stealing remotely")
     parser.add_argument('-rspconf', nargs=3, dest="probabilities_config",
                         type=float, help="interval config of \
@@ -82,7 +83,8 @@ def main():
         arguments.processors,
         arguments.runs
     ))
-    print("#probability\tremote latency\trunning time")
+    print("#probability\tremote latency\tinternal steal number\t \
+          external steal number\trunning time")
 
     for probability in probabilities:
         arguments.probability = probability
@@ -92,8 +94,11 @@ def main():
             for _ in range(arguments.runs):
                 simulator.reset(arguments.work)
                 simulator.run()
-                print("{}\t{}\t{}".format(probability,
-                                          latency, simulator.time))
+                print("{}\t{}\t{}\t{}\t{}".format(
+                    probability, latency,
+                    sum(simulator.steal_info["IWR"]),
+                    sum(simulator.steal_info["EWR"]),
+                    simulator.time))
 
 
 if __name__ == "__main__":

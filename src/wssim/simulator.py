@@ -41,6 +41,7 @@ class Simulator:
         self.events.clear()
         self.total_work = work
         self.time = 0
+        self.steal_info.clear()
         # self.init_stealing_probabilities(remote_steal_probability)
         for index, processor in enumerate(self.processors):
             processor.current_time = 0

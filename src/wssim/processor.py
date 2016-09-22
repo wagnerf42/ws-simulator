@@ -18,7 +18,7 @@ class Processor:
     network_time : network is in use until this time, if != 0 the network
     is used
     """
-    speed = 1 # speed of all processors
+    speed = 1  # speed of all processors
 
     def __init__(self, number, cluster, simulator, work=0):
         self.number = number
@@ -52,7 +52,6 @@ class Processor:
                 if self.simulator.log_file is not None:
                     self.simulator.logger.sub_work(self, advanced_work)
 
-
     def answer_steal_request(self, stealer):
         """
         update current local time.
@@ -72,9 +71,9 @@ class Processor:
             self.work -= stolen_work
             if stolen_work > 0:
                 if self.cluster == stealer.cluster:
-                    self.simulator.steal_info["SIWR"].append(1)
+                    self.simulator.steal_info["SIWR"] += 1
                 else:
-                    self.simulator.steal_info["SEWR"].append(1)
+                    self.simulator.steal_info["SEWR"] += 1
                 self.network_time = reply_time
                 becoming_idle_time = self.current_time + \
                     self.work // self.speed
@@ -119,7 +118,7 @@ class Processor:
         """
         start stealing, update simulator.
         """
-        #victim = self.simulator.random_victim_not(self.number)
+        # victim = self.simulator.random_victim_not(self.number)
         victim = self.simulator.processors[
             self.simulator.topology.select_victim_not(self.number)
         ]
@@ -128,9 +127,9 @@ class Processor:
             StealRequestEvent(steal_time, self, victim)
         )
         if self.cluster == victim.cluster:
-            self.simulator.steal_info["IWR"].append(1)
+            self.simulator.steal_info["IWR"] += 1
         else:
-            self.simulator.steal_info["EWR"].append(1)
+            self.simulator.steal_info["EWR"] += 1
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,

@@ -21,6 +21,16 @@ def floating_range(start, end, step):
         yield start + iteration * step
 
 
+def power_range(start, end, step):
+    """
+    return iterator between start and end, multiplying by step
+    """
+    current_value = start
+    while current_value <= end:
+        yield current_value
+        current_value *= step
+
+
 def main():
     """
     main program to start Simulation
@@ -38,6 +48,10 @@ def main():
                         type=int, help="interval config of \
                         latencies ,\
                         (-lconf min_latency max_latency step)")
+    parser.add_argument('-wconf', nargs=3, dest="work_config",
+                        type=int, help="interval config of \
+                        work,\
+                        (-wconf min_work max_work multiplicative_step)")
     parser.add_argument("-p", dest="processors",
                         default=4, type=int,
                         help="total number of processors")
@@ -78,27 +92,35 @@ def main():
     else:
         latencies = list(floating_range(*arguments.latencies_config))
 
-    print("#WORK: {}, PROCESSORS: {}, RUNS: {}".format(
-        arguments.work,
+    if not arguments.work_config:
+        works = [arguments.work]
+    else:
+        works = list(power_range(*arguments.work_config))
+
+    print("PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs
     ))
     print("#probability\tremote latency\tinternal steal number\t \
-          external steal number\trunning time")
+          external steal number\trunning time\tprocessors\twork")
 
     for probability in probabilities:
         arguments.probability = probability
         simulator.topology.remote_steal_probability = probability
         for latency in latencies:
             simulator.topology.update_remote_latency(latency)
-            for _ in range(arguments.runs):
-                simulator.reset(arguments.work)
-                simulator.run()
-                print("{}\t{}\t{}\t{}\t{}".format(
-                    probability, latency,
-                    sum(simulator.steal_info["IWR"]),
-                    sum(simulator.steal_info["EWR"]),
-                    simulator.time))
+            for work in works:
+                for _ in range(arguments.runs):
+                    simulator.reset(work)
+                    simulator.run()
+                    print("{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+                        probability, latency,
+                        simulator.steal_info["IWR"],
+                        simulator.steal_info["EWR"],
+                        simulator.time,
+                        arguments.processors,
+                        work
+                    ))
 
 
 if __name__ == "__main__":

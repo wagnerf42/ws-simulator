@@ -4,9 +4,9 @@ the processor module provides a Processor class
 holding processors states for the simulation.
 """
 from math import ceil, isclose
+from collections import defaultdict
 from sortedcontainers import SortedListWithKey
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-
 
 class Processor:
     """
@@ -23,11 +23,24 @@ class Processor:
     def __init__(self, number, cluster, simulator, work=0):
         self.number = number
         self.work = work
+        self.time_stealing = 0
         self.simulator = simulator
         self.current_time = 0
         self.network_time = 0  # network is in use until this time
+        self.work_sending = 0
         self.cluster = cluster
         self.steal_probabilities = []
+        self.potential = defaultdict(int)
+
+    def reset(self, work):
+        """
+        reset all counters. initialize work with given value.
+        """
+        self.current_time = 0
+        self.network_time = 0
+        self.work_sending = 0
+        self.time_stealing = 0
+        self.work = work
 
     def __hash__(self):
         return hash(self.number)
@@ -65,10 +78,13 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
 
-        if self.current_time >= self.network_time:
-            # we can use network
+        if self.current_time >= self.network_time and \
+                self.work > self.simulator.threshold_steal *\
+                self.simulator.topology.distance(self.number, stealer.number):
+            # we can use network and we have enough work to send
             stolen_work = self.work // 2
             self.work -= stolen_work
+            self.work_sending += stolen_work # !!!!!!!!!!!!!!
             if stolen_work > 0:
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1
@@ -139,12 +155,15 @@ class Processor:
         """
         we receive an answer from steal request.
         """
+        self.time_stealing += 2*self.simulator.topology.distance(
+            self.number, victim.number)
         self.update_time()
         self.work = work
         if self.work == 0:
             # still no work, steal again
             self.start_stealing()
         else:
+            victim.work_sending -= work
             self.simulator.add_event(
                 IdleEvent(self.current_time + ceil(self.work // self.speed),
                           self)
@@ -185,3 +204,9 @@ class Processor:
                     ((min_probability, min_processor),
                      (needed, max_processor))
                 )
+
+    def update_potential(self):
+        """
+        update potential value in the processor.
+        """
+        self.potential[self.current_time] = self.work**2

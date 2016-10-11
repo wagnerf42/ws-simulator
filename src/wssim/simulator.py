@@ -2,22 +2,26 @@
 provides Simulator class containing the global simulation state.
 """
 from heapq import heappush, heappop
+from math import sqrt
 from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
-from wssim.events import IdleEvent
+from wssim.events import IdleEvent, ComputePotentialEvent
 
 class Simulator:
     """
     Simulation
     """
-    def __init__(self, processors_number, log_file, topology):
+    def __init__(self, processors_number, log_file, topology,
+                 potential_logs_frequency, threshold_steal):
+        self.potential_logs_frequency = potential_logs_frequency
         self.log_file = log_file
         self.time = 0
         self.total_work = 0
         self.logger = None
         self.topology = topology
         self.remote_steal_probability = None
+        self.threshold_steal = threshold_steal
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
@@ -43,15 +47,33 @@ class Simulator:
         self.time = 0
         self.steal_info.clear()
         # self.init_stealing_probabilities(remote_steal_probability)
+        if self.potential_logs_frequency:
+            self.add_event(ComputePotentialEvent(0, self))
+
         for index, processor in enumerate(self.processors):
-            processor.current_time = 0
-            processor.network_time = 0
             if index:
                 self.add_event(IdleEvent(0, processor))
-                processor.work = 0
+                processor.reset(0)
             else:
+                processor.reset(work)
                 self.add_event(IdleEvent(work//processor.speed, processor))
-                processor.work = work
+
+
+    def compute_potential(self):
+        """
+        update potential when event finish in current time.
+        """
+        current_potential = 0
+        for processor in self.processors:
+            processor.update_time()
+            current_potential += (processor.work + processor.work_sending)**2
+        current_potential -= (self.total_work**2) / len(self.processors)
+        current_potential = sqrt(current_potential)
+        mean_work = self.total_work / len(self.processors)
+        if mean_work != 0:
+            return current_potential/mean_work
+        else:
+            return 0
 
     def run(self):
         """
@@ -61,11 +83,14 @@ class Simulator:
             event = self.next_event()
             self.time = event.time
             event.execute()
+
         if __debug__:
             if self.log_file is not None:
                 self.logger.end_of_logger(clusters_number=2,
                                           processors_number=len(
                                               self.processors))
+        #if wssim.POTENTIAL_LOGGING:
+        #    self.update_potential(end=True)
 
     def add_event(self, event):
         """
@@ -74,8 +99,9 @@ class Simulator:
         """
         heappush(self.events, event)
         # newest event is always the valid one
-        assert isinstance(event.processor, Processor)
-        self.valid_events[event.processor] = event
+        if event.processor is not None:
+            assert isinstance(event.processor, Processor)
+            self.valid_events[event.processor] = event
 
     def next_event(self):
         """
@@ -83,7 +109,7 @@ class Simulator:
         """
         # loop discarding all cancelled events
         event = heappop(self.events)
-        while event != self.valid_events[event.processor]:
+        while event.processor is not None and event != self.valid_events[event.processor]:
             event = heappop(self.events)
         return event
 

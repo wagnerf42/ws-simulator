@@ -7,6 +7,7 @@ import argparse
 from math import floor
 from random import seed
 from time import clock
+import wssim
 from wssim.simulator import Simulator
 from wssim import activate_logs
 from wssim.topology.cluster import Topology
@@ -68,19 +69,23 @@ def main():
                         help="number of runs to execute")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
+    parser.add_argument("-pot", dest="potential_logs", default=None, type=int,
+                        help="cycle time to compute potential")
+    parser.add_argument("-t", dest="threshold_steal", default=0, type=float,
+                        help="threshold for succesful steal")
     parser.add_argument("-f", dest="log_file", default=None)
     arguments = parser.parse_args()
 
     print("#using seed", arguments.seed)
     seed(arguments.seed)
 
-
     if arguments.debug:
         activate_logs()
 
     platform = Topology(arguments.processors)
     simulator = Simulator(arguments.processors,
-                          arguments.log_file, platform)
+                          arguments.log_file, platform,
+                          arguments.potential_logs, arguments.threshold_steal)
 
     if not arguments.probabilities_config:
         probabilities = [arguments.remote_steal_probability]
@@ -97,12 +102,12 @@ def main():
     else:
         works = list(power_range(*arguments.work_config))
 
-    print("PROCESSORS: {}, RUNS: {}".format(
-        arguments.processors,
-        arguments.runs
-    ))
-    print("#probability\tremote latency\tinternal steal number\t \
-          external steal number\trunning time\tprocessors\twork")
+    if not arguments.potential_logs:
+        print("#PROCESSORS: {}, RUNS: {}".format(
+            arguments.processors,
+            arguments.runs))
+        print("#probability\tremote latency\tinternal steal number\t SISN\t \
+              external steal number\tSESN\trunning time\tprocessors\twork")
 
     for probability in probabilities:
         arguments.probability = probability
@@ -113,14 +118,19 @@ def main():
                 for _ in range(arguments.runs):
                     simulator.reset(work)
                     simulator.run()
-                    print("{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-                        probability, latency,
-                        simulator.steal_info["IWR"],
-                        simulator.steal_info["EWR"],
-                        simulator.time,
-                        arguments.processors,
-                        work
-                    ))
+                    if not arguments.potential_logs:
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+                            probability, latency,
+                            simulator.steal_info["IWR"],
+                            simulator.steal_info["SIWR"],
+                            simulator.steal_info["EWR"],
+                            simulator.steal_info["SEWR"],
+                            simulator.time,
+                            arguments.processors,
+                            work
+                        ))
+                    else:
+                        print("#time: {}".format(simulator.time))
 
 
 if __name__ == "__main__":

@@ -24,8 +24,12 @@ class Event():
                 print(self)
 
     def __str__(self):
-        return "t={} p={} type:{}".format(self.time, self.processor.number,
-                                          self.event_type)
+        if self.processor is not None:
+            return "t={} p={} type:{}".format(self.time,
+                                              self.processor.number,
+                                              self.event_type)
+        else:
+            return "t={} type:{}".format(self.time, self.event_type)
 
     def __lt__(self, other):
         return self.time < other.time
@@ -104,3 +108,35 @@ class StealAnswerEvent(Event):
         print("P", self.processor.number, " receive response (",
               self.stolen_work, ") from P", self.victim.number,
               " at ", self.time)
+
+
+class ComputePotentialEvent(Event):
+    """
+    compute potential event happens each cycle.
+    """
+    def __init__(self, cycle_time, simulator):
+        super().__init__(cycle_time, None, "POTENTIAL")
+        self.simulator = simulator
+
+    def execute(self):
+        """
+        execute compute_potential_event
+        """
+        super().execute()
+        current_potential = self.simulator.compute_potential()
+        print(self.time, current_potential,
+              sum([p.time_stealing
+                   for p in self.simulator.processors]))
+        self.simulator.add_event(ComputePotentialEvent(
+            self.time + self.simulator.potential_logs_frequency,
+            self.simulator))
+
+
+    def display(self):
+        """
+        display event
+        """
+        print("compute potential at ", self.time)
+
+
+

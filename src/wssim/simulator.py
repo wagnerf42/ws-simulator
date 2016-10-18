@@ -6,22 +6,20 @@ from math import sqrt
 from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
-from wssim.events import IdleEvent, ComputePotentialEvent
 
 class Simulator:
     """
     Simulation
     """
     def __init__(self, processors_number, log_file, topology,
-                 potential_logs_frequency, threshold_steal):
-        self.potential_logs_frequency = potential_logs_frequency
+                 task_threshold):
         self.log_file = log_file
         self.time = 0
         self.total_work = 0
         self.logger = None
         self.topology = topology
         self.remote_steal_probability = None
-        self.threshold_steal = threshold_steal
+        self.task_threshold = task_threshold
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
@@ -37,7 +35,7 @@ class Simulator:
             if self.log_file is not None:
                 self.platform_definition_logger(2)
 
-    def reset(self, work):
+    def reset(self, work, first_task):
         """
         sets work, create all initial events
         """
@@ -46,34 +44,12 @@ class Simulator:
         self.total_work = work
         self.time = 0
         self.steal_info.clear()
-        # self.init_stealing_probabilities(remote_steal_probability)
-        if self.potential_logs_frequency:
-            self.add_event(ComputePotentialEvent(0, self))
 
         for index, processor in enumerate(self.processors):
             if index:
-                self.add_event(IdleEvent(0, processor))
-                processor.reset(0)
+                processor.reset()
             else:
-                processor.reset(work)
-                self.add_event(IdleEvent(work//processor.speed, processor))
-
-
-    def compute_potential(self):
-        """
-        update potential when event finish in current time.
-        """
-        current_potential = 0
-        for processor in self.processors:
-            processor.update_time()
-            current_potential += (processor.work + processor.work_sending)**2
-        current_potential -= (self.total_work**2) / len(self.processors)
-        current_potential = sqrt(current_potential)
-        mean_work = self.total_work / len(self.processors)
-        if mean_work != 0:
-            return current_potential/mean_work
-        else:
-            return 0
+                processor.reset(first_task=first_task)
 
     def run(self):
         """
@@ -89,8 +65,6 @@ class Simulator:
                 self.logger.end_of_logger(clusters_number=2,
                                           processors_number=len(
                                               self.processors))
-        #if wssim.POTENTIAL_LOGGING:
-        #    self.update_potential(end=True)
 
     def add_event(self, event):
         """
@@ -109,7 +83,8 @@ class Simulator:
         """
         # loop discarding all cancelled events
         event = heappop(self.events)
-        while event.processor is not None and event != self.valid_events[event.processor]:
+        while event.processor is not None and \
+                event != self.valid_events[event.processor]:
             event = heappop(self.events)
         return event
 
@@ -118,7 +93,7 @@ class Simulator:
         cree l'ensemble des processor
         """
         cluster = self.topology.cluster_number(0)
-        self.processors.append(Processor(0, cluster, self, self.total_work))
+        self.processors.append(Processor(0, cluster, self))
         for id_processor in range(1, processors_number):
             cluster = self.topology.cluster_number(id_processor)
             self.processors.append(Processor(id_processor, cluster, self))
@@ -158,26 +133,3 @@ class Simulator:
                 self.logger.set_work(processor, self.total_work)
             else:
                 self.logger.set_work(processor)
-
-    def init_stealing_probabilities(self, remote_steal_probability):
-        """
-        compute for each processor the probability vector used
-        for stealing.
-        pre-condition: processors are ordered by number
-        """
-        processors_number = len(self.processors)
-        cluster_sizes = [processors_number // 2,
-                         processors_number - processors_number//2]
-        for processor in self.processors:
-            probabilities = []
-            for other_processor in self.processors:
-                if other_processor == processor:
-                    continue
-                elif other_processor.cluster == processor.cluster:
-                    probability = (1 - remote_steal_probability)\
-                        /(cluster_sizes[processor.cluster] -1)
-                else:
-                    probability = remote_steal_probability\
-                        /cluster_sizes[other_processor.cluster]
-                probabilities.append((probability, other_processor))
-            processor.compute_stealing_probabilities(probabilities)

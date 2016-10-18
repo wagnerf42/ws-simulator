@@ -87,10 +87,10 @@ class StealAnswerEvent(Event):
     his victim. it contains the stolen work amount or 0 in case of
     failure.
     """
-    def __init__(self, reply_time, stealer, victim, stolen_work):
+    def __init__(self, reply_time, stealer, victim, stolen_task):
         super().__init__(reply_time, stealer, "ANSWER")
         self.victim = victim
-        self.stolen_work = stolen_work
+        self.stolen_task = stolen_task
 
     def execute(self):
         """
@@ -98,7 +98,7 @@ class StealAnswerEvent(Event):
         """
         super().execute()
         #self.victim.frees_network()
-        self.processor.steal_answer(self.stolen_work, self.victim)
+        self.processor.steal_answer(self.stolen_task, self.victim)
 
 
     def display(self):
@@ -108,35 +108,3 @@ class StealAnswerEvent(Event):
         print("P", self.processor.number, " receive response (",
               self.stolen_work, ") from P", self.victim.number,
               " at ", self.time)
-
-
-class ComputePotentialEvent(Event):
-    """
-    compute potential event happens each cycle.
-    """
-    def __init__(self, cycle_time, simulator):
-        super().__init__(cycle_time, None, "POTENTIAL")
-        self.simulator = simulator
-
-    def execute(self):
-        """
-        execute compute_potential_event
-        """
-        super().execute()
-        current_potential = self.simulator.compute_potential()
-        print(self.time, current_potential,
-              sum([p.time_stealing
-                   for p in self.simulator.processors]))
-        self.simulator.add_event(ComputePotentialEvent(
-            self.time + self.simulator.potential_logs_frequency,
-            self.simulator))
-
-
-    def display(self):
-        """
-        display event
-        """
-        print("compute potential at ", self.time)
-
-
-

@@ -59,7 +59,7 @@ class Processor:
         """
         if self.tasks:
             return self.tasks.popleft()
-        elif self.current_task and not self.simulator.topology.is_tasks:
+        elif self.current_task:
 
             if self.cluster == stealer.cluster:
                 granularity = self.simulator.topology.local_granularity

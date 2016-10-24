@@ -45,19 +45,22 @@ class Topology:
         else:
             return 1
 
-    def update_granularity(self, local_granularity, remote_granularity):
+    def update_granularity(self, local_granularity, remote_granularity, 
+                           threshold):
         """
         update local and remote grenularity,
         """
         if local_granularity is None:
-            self.local_granularity = 4*self.latencies[1]
+            self.local_granularity = threshold
         else:
             self.local_granularity = local_granularity
+            assert local_latency >= threshold
 
         if remote_granularity is None:
-            self.remote_granularity = 4*self.latencies[0]
+            self.remote_granularity = threshold
         else:
             self.remote_granularity = remote_granularity
+            assert remote_granularity >= threshold
 
     def select_victim_not(self, unwanted_processor_number):
         """

@@ -10,8 +10,8 @@ from time import clock
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-#from wssim.topology.cluster import Topology
-from wssim.topology.clusters import Topology
+from wssim.topology.cluster import Topology
+#from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -73,7 +73,7 @@ def main():
                         help="activate traces")
     parser.add_argument("-tt", dest="task_threshold", default=[100],
                         nargs='+', type=int, help="threshold for real tasks")
-    parser.add_argument("-lg", dest="local_granularity", default=1, type=int,
+    parser.add_argument("-lg", dest="local_granularity", default=None, type=int,
                         help="local stealing granularity")
     parser.add_argument("-rg", dest="remote_granularity", default=None,
                         type=int, help="remote stealing granularity ")
@@ -122,7 +122,8 @@ def main():
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
                     simulator.topology.update_granularity(
-                        arguments.local_granularity, arguments.remote_granularity)
+                        arguments.local_granularity,
+                        arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
                         if arguments.tasks:
                             simulator.reset(work, first_task)

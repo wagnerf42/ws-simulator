@@ -8,7 +8,7 @@ class Topology:
     """
     Store all topology related informations and methods.
     """
-    def __init__(self, processors_number,
+    def __init__(self, processors_number, is_tasks,
                  local_latency=1, remote_latency=None,
                  remote_steal_probability=None):
         self.processors_number = processors_number
@@ -18,6 +18,9 @@ class Topology:
         self.cluster_sizes.append(self.processors_number -
                                   self.cluster_sizes[0])
         self.cluster_starts = [0, self.cluster_sizes[0]]
+        self.remote_granularity = None
+        self.local_granularity = None
+        self.is_tasks = is_tasks
 
     def distance(self, *processor_numbers):
         """
@@ -41,6 +44,20 @@ class Topology:
             return 0
         else:
             return 1
+
+    def update_granularity(self, local_granularity, remote_granularity):
+        """
+        update local and remote grenularity,
+        """
+        if local_granularity is None:
+            self.local_granularity = 4*self.latencies[1]
+        else:
+            self.local_granularity = local_granularity
+
+        if remote_granularity is None:
+            self.remote_granularity = 4*self.latencies[0]
+        else:
+            self.remote_granularity = remote_granularity
 
     def select_victim_not(self, unwanted_processor_number):
         """

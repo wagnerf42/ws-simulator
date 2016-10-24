@@ -8,11 +8,9 @@ from math import floor
 from random import seed
 from time import clock
 from wssim.simulator import Simulator
-from wssim.task import Task
+from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-from wssim.topology.cluster import Topology
-from wssim.task import init_task_tree
-#from wssim.task import init_task_tree
+#from wssim.topology.cluster import Topology
 from wssim.topology.clusters import Topology
 
 
@@ -73,10 +71,12 @@ def main():
                         help="use tree tasks")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
-    parser.add_argument("-ts", dest="threshold_steal", default=0, type=float,
-                        help="threshold for succesful steal")
-    parser.add_argument("-tt", dest="task_threshold", default=1, type=int,
-                        help="threshold for real tasks")
+    parser.add_argument("-tt", dest="task_threshold", default=[100],
+                        nargs='+', type=int, help="threshold for real tasks")
+    parser.add_argument("-lg", dest="local_granularity", default=1, type=int,
+                        help="local stealing granularity")
+    parser.add_argument("-rg", dest="remote_granularity", default=None,
+                        type=int, help="remote stealing granularity ")
     parser.add_argument("-f", dest="log_file", default=None)
     arguments = parser.parse_args()
 
@@ -86,10 +86,9 @@ def main():
     if arguments.debug:
         activate_logs()
 
-    platform = Topology(arguments.processors)
+    platform = Topology(arguments.processors, arguments.tasks)
     simulator = Simulator(arguments.processors,
-                          arguments.log_file, platform,
-                          arguments.task_threshold)
+                          arguments.log_file, platform)
 
     if not arguments.probabilities_config:
         probabilities = [arguments.remote_steal_probability]
@@ -110,38 +109,37 @@ def main():
         arguments.processors,
         arguments.runs))
     print("#probability\tremote latency\tinternal steal number\t SISN\t \
-          external steal number\tSESN\trunning time\tprocessors\twork")
+          external steal number\tSESN\trunning time\tprocessors\twork\t \
+          task threshold")
 
-    #TODO: what is the best order of these loops ?
-    # or: use a cache
-    for probability in probabilities:
-        arguments.probability = probability
-        simulator.topology.remote_steal_probability = probability
-        for latency in latencies:
-            simulator.topology.update_remote_latency(latency)
-            for work in works:
-                # TODO: if we want task splitting on steal requests
-                # create one task with all work instead of tree
-                # instead of next line
-                if arguments.tasks:
-                    first_task = init_task_tree(work, arguments.task_threshold)
-                for _ in range(arguments.runs):
-                    if arguments.tasks:
-                        simulator.reset(work, first_task)
-                    else:
-                        simulator.reset(work, Task(work, []))
-
-                    simulator.run()
-                    print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-                        probability, latency,
-                        simulator.steal_info["IWR"],
-                        simulator.steal_info["SIWR"],
-                        simulator.steal_info["EWR"],
-                        simulator.steal_info["SEWR"],
-                        simulator.time,
-                        arguments.processors,
-                        work
-                    ))
+    for work in works:
+        for threshold in arguments.task_threshold:
+            if arguments.tasks:
+                first_task = init_task_tree(work, threshold)
+            for probability in probabilities:
+                arguments.probability = probability
+                simulator.topology.remote_steal_probability = probability
+                for latency in latencies:
+                    simulator.topology.update_remote_latency(latency)
+                    simulator.topology.update_granularity(
+                        arguments.local_granularity, arguments.remote_granularity)
+                    for _ in range(arguments.runs):
+                        if arguments.tasks:
+                            simulator.reset(work, first_task)
+                        else:
+                            simulator.reset(work, Task(work, []))
+                        simulator.run()
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+                            probability, latency,
+                            simulator.steal_info["IWR"],
+                            simulator.steal_info["SIWR"],
+                            simulator.steal_info["EWR"],
+                            simulator.steal_info["SEWR"],
+                            simulator.time,
+                            arguments.processors,
+                            work,
+                            threshold
+                        ))
 
 
 if __name__ == "__main__":

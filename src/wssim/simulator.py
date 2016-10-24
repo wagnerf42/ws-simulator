@@ -2,7 +2,6 @@
 provides Simulator class containing the global simulation state.
 """
 from heapq import heappush, heappop
-from math import sqrt
 from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
@@ -11,15 +10,15 @@ class Simulator:
     """
     Simulation
     """
-    def __init__(self, processors_number, log_file, topology,
-                 task_threshold):
+    def __init__(self, processors_number, log_file, topology):
         self.log_file = log_file
         self.time = 0
         self.total_work = 0
         self.logger = None
         self.topology = topology
         self.remote_steal_probability = None
-        self.task_threshold = task_threshold
+        self.local_granularity = None
+        self.remote_granularity = None
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
@@ -133,3 +132,11 @@ class Simulator:
                 self.logger.set_work(processor, self.total_work)
             else:
                 self.logger.set_work(processor)
+
+
+
+
+
+
+
+

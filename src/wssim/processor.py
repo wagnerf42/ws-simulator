@@ -49,7 +49,7 @@ class Processor:
     def __eq__(self, other):
         return self.number == other.number
 
-    def get_part_of_work_if_exist(self):
+    def get_part_of_work_if_exist(self, stealer):
         """
         methode return half of work.
         if we use work : return new half of work if exist in new task and
@@ -59,10 +59,16 @@ class Processor:
         """
         if self.tasks:
             return self.tasks.popleft()
-        elif self.current_task:
+        elif self.current_task and not self.simulator.topology.is_tasks:
+
+            if self.cluster == stealer.cluster:
+                granularity = self.simulator.topology.local_granularity
+            else:
+                granularity = self.simulator.topology.remote_granularity
+
             splitting_result = \
-                self.current_task.split_work(self.current_time,
-                                             self.simulator.task_threshold)
+                self.current_task.split_work(self.current_time, granularity)
+
             if splitting_result:
                 idle_time, created_task = splitting_result
                 self.simulator.add_event(
@@ -83,7 +89,7 @@ class Processor:
 
         if self.current_time >= self.network_time:
             # we can use network and we have enough work to send
-            stolen_task = self.get_part_of_work_if_exist()
+            stolen_task = self.get_part_of_work_if_exist(stealer)
             if stolen_task is not None:
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1

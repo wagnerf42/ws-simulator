@@ -10,8 +10,8 @@ from time import clock
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-from wssim.topology.cluster import Topology
-#from wssim.topology.clusters import Topology
+#from wssim.topology.cluster import Topology
+from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -86,7 +86,7 @@ def main():
     if arguments.debug:
         activate_logs()
 
-    platform = Topology(arguments.processors, arguments.tasks)
+    platform = Topology(arguments.processors, arguments.tasks, local_latency=60)
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
 
@@ -110,12 +110,10 @@ def main():
         arguments.runs))
     print("#probability\tremote latency\tinternal steal number\t SISN\t \
           external steal number\tSESN\trunning time\tprocessors\twork\t \
-          task threshold")
+          task threshold\tlocal_granularity\tremote_granularity")
 
     for work in works:
         for threshold in arguments.task_threshold:
-            if arguments.tasks:
-                first_task = init_task_tree(work, threshold)
             for probability in probabilities:
                 arguments.probability = probability
                 simulator.topology.remote_steal_probability = probability
@@ -126,21 +124,25 @@ def main():
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
                         if arguments.tasks:
+                            first_task = init_task_tree(work, threshold)
                             simulator.reset(work, first_task)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()
-                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-                            probability, latency,
-                            simulator.steal_info["IWR"],
-                            simulator.steal_info["SIWR"],
-                            simulator.steal_info["EWR"],
-                            simulator.steal_info["SEWR"],
-                            simulator.time,
-                            arguments.processors,
-                            work,
-                            threshold
-                        ))
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+                              .format(
+                                  probability, latency,
+                                  simulator.steal_info["IWR"],
+                                  simulator.steal_info["SIWR"],
+                                  simulator.steal_info["EWR"],
+                                  simulator.steal_info["SEWR"],
+                                  simulator.time,
+                                  arguments.processors,
+                                  work,
+                                  threshold,
+                                  arguments.local_granularity,
+                                  arguments.remote_granularity
+                              ))
 
 
 if __name__ == "__main__":

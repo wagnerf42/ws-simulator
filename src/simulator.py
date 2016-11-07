@@ -78,15 +78,19 @@ def main():
     parser.add_argument("-rg", dest="remote_granularity", default=None,
                         type=int, help="remote stealing granularity ")
     parser.add_argument("-f", dest="log_file", default=None)
+    parser.add_argument("-sim", dest="is_simultaneous", action="store_true",
+                        help="activate simultaneously steal")
     arguments = parser.parse_args()
 
+    print(arguments.is_simultaneous)
     print("#using seed", arguments.seed)
     seed(arguments.seed)
 
     if arguments.debug:
         activate_logs()
 
-    platform = Topology(arguments.processors, arguments.tasks)
+    platform = Topology(arguments.processors, arguments.tasks,
+                        arguments.is_simultaneous)
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
 

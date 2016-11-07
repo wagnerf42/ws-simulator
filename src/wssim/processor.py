@@ -95,7 +95,8 @@ class Processor:
                     self.simulator.steal_info["SIWR"] += 1
                 else:
                     self.simulator.steal_info["SEWR"] += 1
-                self.network_time = reply_time
+                if not self.simulator.topology.is_simultaneous:
+                    self.network_time = reply_time
 
                 if __debug__:
                     if self.simulator.log_file is not None:

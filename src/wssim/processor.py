@@ -93,8 +93,10 @@ class Processor:
             if stolen_task is not None:
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1
+                    self.simulator.steal_info["WI"] += stolen_task.total_work()
                 else:
                     self.simulator.steal_info["SEWR"] += 1
+                    self.simulator.steal_info["WE"] += stolen_task.total_work()
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
 

@@ -3,6 +3,9 @@
 the task module provides a Task class
 holding work of task and list of its children for the simulation.
 """
+from copy import deepcopy
+
+
 
 
 class Task:
@@ -16,6 +19,15 @@ class Task:
         self.work = work
         self.children = children
         self.start_time = 0  # at which time is the task started
+
+    def total_work(self):
+        """
+        returns work contained in ourselves and all our children
+        """
+        if self.children:
+            return sum(child.total_work() for child in self.children)
+        else:
+            return self.work
 
     def split_work(self, current_time, granularity):
         """
@@ -68,3 +80,24 @@ def init_task_tree(total_work, threshold):
             init_task_tree(total_work//2, threshold),
             init_task_tree(total_work-total_work//2, threshold)
         ])
+
+
+CACHE = dict()
+def init_task_tree_with_cache(total_work, threshold):
+    """
+    create the task tree recursively
+    """
+    global CACHE
+    if (total_work, threshold) in CACHE:
+        return deepcopy(CACHE[(total_work, threshold)])
+
+    if total_work//2 < threshold:
+        result = Task(total_work, [])
+    else:
+        result = Task(0, [
+            init_task_tree(total_work//2, threshold),
+            init_task_tree(total_work-total_work//2, threshold)
+        ])
+
+    CACHE[(total_work, threshold)] = deepcopy(result)
+    return result

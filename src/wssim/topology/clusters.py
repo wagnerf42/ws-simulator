@@ -8,7 +8,7 @@ class Topology:
     """
     Store all topology related informations and methods.
     """
-    def __init__(self, processors_number, is_tasks, is_simultaneous
+    def __init__(self, processors_number, is_tasks, is_simultaneous,
                  local_latency=1, remote_latency=None,
                  remote_steal_probability=None):
         self.processors_number = processors_number
@@ -55,13 +55,11 @@ class Topology:
             self.local_granularity = threshold
         else:
             self.local_granularity = local_granularity
-            assert local_latency >= threshold
 
         if remote_granularity is None:
             self.remote_granularity = threshold
         else:
             self.remote_granularity = remote_granularity
-            assert remote_granularity >= threshold
 
     def select_victim_not(self, unwanted_processor_number):
         """

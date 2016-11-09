@@ -10,8 +10,8 @@ from time import clock
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-#from wssim.topology.cluster import Topology
-from wssim.topology.clusters import Topology
+from wssim.topology.cluster import Topology
+#from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -82,7 +82,6 @@ def main():
                         help="activate simultaneously steal")
     arguments = parser.parse_args()
 
-    print(arguments.is_simultaneous)
     print("#using seed", arguments.seed)
     seed(arguments.seed)
 
@@ -113,7 +112,8 @@ def main():
         arguments.processors,
         arguments.runs))
     print("#probability\tremote latency\tinternal steal number\t SISN\t \
-          external steal number\tSESN\trunning time\tprocessors\twork\t \
+          external steal number\tSESN\tinternal data transfered\t \
+          external data transfered\trunning time\tprocessors\twork\t \
           task threshold\tlocal_granularity\tremote_granularity")
 
     for work in works:
@@ -133,7 +133,7 @@ def main():
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()
-                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -145,7 +145,9 @@ def main():
                                   work,
                                   threshold,
                                   arguments.local_granularity,
-                                  arguments.remote_granularity
+                                  arguments.remote_granularity,
+                                  simulator.steal_info["WI"],
+                                  simulator.steal_info["WE"]
                               ))
 
 

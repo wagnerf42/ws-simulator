@@ -19,6 +19,7 @@ class Simulator:
         self.remote_steal_probability = None
         self.local_granularity = None
         self.remote_granularity = None
+        self.is_beginning = True
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
@@ -27,6 +28,7 @@ class Simulator:
         # associate to each processor the next valid event
         # we do that since the heap contains cancelled events which we
         # cannot remove
+        self.active_processors = dict()
         self.valid_events = dict()
         self.init_processors(processors_number)
         self.steal_info = defaultdict(int)
@@ -42,13 +44,16 @@ class Simulator:
         self.events.clear()
         self.total_work = work
         self.time = 0
+        self.is_beginning = True
         self.steal_info.clear()
+        self.active_processors.clear()
 
         for index, processor in enumerate(self.processors):
             if index:
                 processor.reset()
             else:
                 processor.reset(first_task=first_task)
+                self.add_active_processor(processor)
 
     def run(self):
         """
@@ -133,10 +138,26 @@ class Simulator:
             else:
                 self.logger.set_work(processor)
 
+    def add_active_processor(self, processor):
+        """
+        add processor to the active processor list.
+        """
+        #print("+ P", processor.number)
+        #if self.is_beginning:
+            #print("+ P", processor.number)
+        self.active_processors[processor.number] = processor.number
+        if self.is_beginning and len(self.active_processors) == \
+                len(self.processors):
+            self.steal_info["beginning"] = self.time
+            self.is_beginning = False
 
-
-
-
-
+    def rm_active_processor(self, processor):
+        """
+        remove processor to the active processor list.
+        """
+        #if processor.number in self.active_processors:
+           # print("- P", processor.number)
+           # self.active_processors.pop(processor.number)
+        #if len(self.active_processors) == 0:
 
 

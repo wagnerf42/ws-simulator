@@ -97,6 +97,7 @@ class Processor:
                 else:
                     self.simulator.steal_info["SEWR"] += 1
                     self.simulator.steal_info["WE"] += stolen_task.total_work()
+
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
 
@@ -158,6 +159,7 @@ class Processor:
         start stealing, update simulator.
         """
         # victim = self.simulator.random_victim_not(self.number)
+        self.simulator.rm_active_processor(self)
         victim = self.simulator.processors[
             self.simulator.topology.select_victim_not(self.number)
         ]
@@ -196,6 +198,7 @@ class Processor:
             becoming_idle_time = self.current_time + \
                 self.current_task.work//self.speed
             self.simulator.add_event(IdleEvent(becoming_idle_time, self))
+            self.simulator.add_active_processor(self)
 
             if __debug__:
                 if self.simulator.log_file is not None:

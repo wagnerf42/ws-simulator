@@ -114,26 +114,29 @@ def main():
     print("#probability\tremote latency\tinternal steal number\t SISN\t \
           external steal number\tSESN\tinternal data transfered\t \
           external data transfered\trunning time\tprocessors\twork\t \
-          task threshold\tlocal_granularity\tremote_granularity")
+          task threshold\tlocal_granularity\tremote_granularity\tbeginning")
 
     for work in works:
         for threshold in arguments.task_threshold:
+            first_task = init_task_tree(work, threshold)
             for probability in probabilities:
                 arguments.probability = probability
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
+                    #arguments.local_granularity = 2
+                    #arguments.remote_granularity = 2
                     simulator.topology.update_granularity(
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
                         if arguments.tasks:
-                            first_task = init_task_tree(work, threshold)
                             simulator.reset(work, first_task)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()
-                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
+                              \t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -147,7 +150,8 @@ def main():
                                   arguments.local_granularity,
                                   arguments.remote_granularity,
                                   simulator.steal_info["WI"],
-                                  simulator.steal_info["WE"]
+                                  simulator.steal_info["WE"],
+                                  simulator.steal_info["beginning"]
                               ))
 
 

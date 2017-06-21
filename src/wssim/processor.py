@@ -38,6 +38,7 @@ class Processor:
         if first_task is not None:
             self.current_task = first_task
             self.current_task.start_time = 0
+            self.simulator.steal_info["W0"] = self.current_task.total_work()
             self.simulator.add_event(IdleEvent(
                 self.current_task.work//self.speed, self))
         else:
@@ -97,6 +98,13 @@ class Processor:
                 else:
                     self.simulator.steal_info["SEWR"] += 1
                     self.simulator.steal_info["WE"] += stolen_task.total_work()
+                    if stealer.cluster == 1:
+                        self.simulator.steal_info["W1"] += stolen_task.total_work()
+                        self.simulator.steal_info["W0"] -= stolen_task.total_work()
+                    else:
+                        self.simulator.steal_info["W1"] -= stolen_task.total_work()
+                        self.simulator.steal_info["W0"] += stolen_task.total_work()
+
 
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time

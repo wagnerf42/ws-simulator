@@ -10,8 +10,8 @@ from time import clock
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-from wssim.topology.cluster import Topology
-#from wssim.topology.clusters import Topology
+#from wssim.topology.cluster import Topology
+from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -82,6 +82,7 @@ def main():
                         help="activate simultaneously steal")
     arguments = parser.parse_args()
 
+
     print("#using seed", arguments.seed)
     seed(arguments.seed)
 
@@ -111,10 +112,8 @@ def main():
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
-    print("#probability\tremote latency\tinternal steal number\t SISN\t \
-          external steal number\tSESN\tinternal data transfered\t \
-          external data transfered\trunning time\tprocessors\twork\t \
-          task threshold\tlocal_granularity\tremote_granularity\tbeginning")
+    print("#prb\tr_l\tISR\tESR\tru_time\tprocessors\
+    \twork\ttask_threshold\tl_granularity\tr_granularity\tIDATAT\tEDATAT\tW0\tW1")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -124,8 +123,8 @@ def main():
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    #arguments.local_granularity = 2
-                    #arguments.remote_granularity = 2
+                    arguments.local_granularity = 2
+                    arguments.remote_granularity = 2*latency
                     simulator.topology.update_granularity(
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
@@ -136,13 +135,13 @@ def main():
                             simulator.reset(work, Task(work, []))
                         simulator.run()
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
-                                  simulator.steal_info["SIWR"],
+                                  #simulator.steal_info["SIWR"],
                                   simulator.steal_info["EWR"],
-                                  simulator.steal_info["SEWR"],
+                                  #simulator.steal_info["SEWR"],
                                   simulator.time,
                                   arguments.processors,
                                   work,
@@ -151,7 +150,9 @@ def main():
                                   arguments.remote_granularity,
                                   simulator.steal_info["WI"],
                                   simulator.steal_info["WE"],
-                                  simulator.steal_info["beginning"]
+                                  simulator.steal_info["W0"],
+                                  simulator.steal_info["W1"]
+                                  #simulator.steal_info["beginning"]
                               ))
 
 

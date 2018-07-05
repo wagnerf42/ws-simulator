@@ -10,8 +10,8 @@ from time import clock
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree
 from wssim import activate_logs
-#from wssim.topology.cluster import Topology
-from wssim.topology.clusters import Topology
+from wssim.topology.cluster import Topology
+#from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -71,7 +71,7 @@ def main():
                         help="use tree tasks")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
-    parser.add_argument("-tt", dest="task_threshold", default=[100],
+    parser.add_argument("-tt", dest="task_threshold", default=[0],
                         nargs='+', type=int, help="threshold for real tasks")
     parser.add_argument("-lg", dest="local_granularity", default=None, type=int,
                         help="local stealing granularity")
@@ -112,13 +112,14 @@ def main():
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
-    print("#prb\tr_l\tISR\tESR\tru_time\tprocessors\
-    \twork\ttask_threshold\tl_granularity\tr_granularity\tIDATAT\tEDATAT\tW0\tW1")
+    print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
+    \twork\ttaskThreshold\tlGranularity\trGranularity\tIDATAT\tEDATAT\tW0\tW1")
 
     for work in works:
         for threshold in arguments.task_threshold:
-            first_task = init_task_tree(work, threshold)
-            for probability in probabilities:
+           # first_task = init_task_tree(total_work=work, threshold=threshold)
+           first_task = init_task_tree(file_name="tasks_file/merge_sort.json" )
+           for probability in probabilities:
                 arguments.probability = probability
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:

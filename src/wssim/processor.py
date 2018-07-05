@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.5
 """
 the processor module provides a Processor class
 holding processors states for the simulation.

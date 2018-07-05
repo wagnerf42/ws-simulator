@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#/usr/bin/env python3.5
 """
 Simulation System configuration
 """
@@ -71,8 +71,9 @@ def main():
                         help="use tree tasks")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
-    parser.add_argument("-tt", dest="task_threshold", default=[0],
+    parser.add_argument("-tt", dest="task_threshold", default=[100],
                         nargs='+', type=int, help="threshold for real tasks")
+    parser.add_argument("-json", dest="json_file", default=None)
     parser.add_argument("-lg", dest="local_granularity", default=None, type=int,
                         help="local stealing granularity")
     parser.add_argument("-rg", dest="remote_granularity", default=None,
@@ -117,9 +118,12 @@ def main():
 
     for work in works:
         for threshold in arguments.task_threshold:
-           # first_task = init_task_tree(total_work=work, threshold=threshold)
-           first_task = init_task_tree(file_name="tasks_file/merge_sort.json" )
-           for probability in probabilities:
+            if arguments.json_file is not None:
+                first_task = init_task_tree(file_name=arguments.json_file)
+            else:
+                first_task = init_task_tree(total_work=work, threshold=threshold)
+
+            for probability in probabilities:
                 arguments.probability = probability
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:

@@ -1,4 +1,4 @@
-#/usr/bin/env python3.5
+# /usr/bin/env python3.5
 """
 Simulation System configuration
 """
@@ -8,7 +8,7 @@ from math import floor
 from random import seed
 from time import clock
 from wssim.simulator import Simulator
-from wssim.task import Task, init_task_tree
+from wssim.task import Task, init_task_tree, get_work, get_critical_path
 from wssim import activate_logs
 from wssim.topology.cluster import Topology
 #from wssim.topology.clusters import Topology
@@ -120,6 +120,9 @@ def main():
         for threshold in arguments.task_threshold:
             if arguments.json_file is not None:
                 first_task = init_task_tree(file_name=arguments.json_file)
+                work = get_work(first_task)
+                critical_path = get_critical_path(first_task)
+                print("#",work/arguments.processors + critical_path)
             else:
                 first_task = init_task_tree(total_work=work, threshold=threshold)
 
@@ -134,8 +137,9 @@ def main():
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
-                        if arguments.tasks:
+                        if arguments.tasks or arguments.json_file is not None:
                             simulator.reset(work, first_task)
+                            print(work)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()

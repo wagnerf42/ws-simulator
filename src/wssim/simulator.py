@@ -48,7 +48,6 @@ class Simulator:
         self.is_beginning = True
         self.steal_info.clear()
         self.active_processors.clear()
-
         for index, processor in enumerate(self.processors):
             if index:
                 processor.reset()
@@ -62,9 +61,12 @@ class Simulator:
         """
         while self.total_work > 0:
             event = self.next_event()
+            #event.display()
             self.time = event.time
             event.execute()
 
+        for processor in self.processors:
+            processor.display()
         if __debug__:
             if self.log_file is not None:
                 self.logger.end_of_logger(clusters_number=2,

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.5
 """
 module for paje events logging.
 provides a Logger class.

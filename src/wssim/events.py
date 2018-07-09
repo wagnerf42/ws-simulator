@@ -106,5 +106,5 @@ class StealAnswerEvent(Event):
         display event
         """
         print("P", self.processor.number, " receive response (",
-              self.stolen_work, ") from P", self.victim.number,
+              self.stolen_task, ") from P", self.victim.number,
               " at ", self.time)

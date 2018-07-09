@@ -50,6 +50,14 @@ class Processor:
     def __eq__(self, other):
         return self.number == other.number
 
+    def display(self):
+        """
+        display processor info
+        """
+        nom  = "P" + str(self.number)
+
+        print(nom, self.tasks)
+
     def get_part_of_work_if_exist(self, stealer):
         """
         methode return half of work.
@@ -61,20 +69,21 @@ class Processor:
         if self.tasks:
             return self.tasks.popleft()
         elif self.current_task:
+            if not self.current_task.is_DAG:
 
-            if self.cluster == stealer.cluster:
-                granularity = self.simulator.topology.local_granularity
-            else:
-                granularity = self.simulator.topology.remote_granularity
+                if self.cluster == stealer.cluster:
+                    granularity = self.simulator.topology.local_granularity
+                else:
+                    granularity = self.simulator.topology.remote_granularity
 
-            splitting_result = \
-                self.current_task.split_work(self.current_time, granularity)
+                splitting_result = \
+                    self.current_task.split_work(self.current_time, granularity)
 
-            if splitting_result:
-                idle_time, created_task = splitting_result
-                self.simulator.add_event(
-                    IdleEvent(idle_time, self))
-                return created_task
+                if splitting_result:
+                    idle_time, created_task = splitting_result
+                    self.simulator.add_event(
+                        IdleEvent(idle_time, self))
+                    return created_task
 
     def answer_steal_request(self, stealer):
         """
@@ -138,7 +147,8 @@ class Processor:
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
-            self.tasks.extend(self.current_task.end_execute_task())
+            ready_tasks = self.current_task.end_execute_task()
+            self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()

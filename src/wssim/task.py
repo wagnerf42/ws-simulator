@@ -16,20 +16,22 @@ class Task:
     childrens : list of dependent tasks
     """
 
-    def __init__(self, work, children, children_id=None, task_id=0):
+    def __init__(self, work, children, children_id=None, task_id=0, is_DAG=False):
         self.id = task_id # id of task will be update when we intialise tasks
         self.work = work
         self.children = children
         self.children_id = children_id
         self.start_time = 0  # at which time is the task started
         self.dependent_tasks_number = 0 # it will be intialised when we initialise tasks
+        self.is_DAG = is_DAG
 
     def total_work(self):
         """
         returns work contained in ourselves and all our children
         """
         if self.children:
-            return sum(child.total_work() for child in self.children)
+            #return sum(child.total_work() for child in self.children)
+            return self.work
         else:
             return self.work
 
@@ -53,12 +55,16 @@ class Task:
         """
         return all children tasks
         """
-        if self.children_id is not None:
+        #print("\nEnd of execution of : ", self.id ,"(",self.total_work(),")" , " tasks ready" , self.children_id)
+        #print("number of children id: ", self.children_id)
+        if self.is_DAG:
             ready_children = []
+            #print("number of children : ", len(self.children))
             for child in self.children:
                 child.update_dependent_task()
                 if child.dependent_tasks_number == 0:
                     ready_children.append(child)
+            #print("ready_children : ", ready_children)
             return ready_children
         else:
             return self.children
@@ -102,6 +108,7 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """
     if file_name is not None:
         tasks = read_task_tree_from_json(file_name)
+        tasks[0].display()
         return tasks[0]
     else:
         if total_work//2 < threshold:
@@ -151,24 +158,24 @@ def read_task_tree_from_json(file_name):
     Read task from json file
     stor tasks in list
     """
+    tasks = []
     with open(file_name) as file:
         logs = json.load(file)
 
-    tasks = [
-        Task(
-            l["end_time"] - l["start_time"],
-            [],
-            children_id = l["children"],
-            task_id = i
-        )
-        for (i, l) in enumerate(logs) ]
+    #tasks = [
+    #    Task(
+    #        l["end_time"] - l["start_time"],
+    #        [],
+    #        children_id = l["children"],
+    #        task_id = i
+    #    )
+    #    for (i, l) in enumerate(logs) ]
 
-    #for task_indix in range(len(tasks)):
-    #    current_task = Task(
-    #        tasks[task_indix]["end_time"]-tasks[task_indix]["start_time"],
-    #        [], children_id=tasks[task_indix]["children"], task_id=task_indix)
-
-    #    tasks_list.append(current_task)
+    for task_indix in range(len(logs)):
+        current_task = Task(
+            logs[task_indix]["end_time"]-logs[task_indix]["start_time"],
+            [], children_id=logs[task_indix]["children"], task_id=task_indix, is_DAG=True)
+        tasks.append(current_task)
 
     return update_dependencies(tasks)
 
@@ -182,11 +189,44 @@ def display_DAG(DAG, level="", level_num=0):
         display_DAG(child, level=level, level_num=level_num)
 
 
-#All_tasks = read_task_tree_from_json("../tasks_file/merge_sort.json")
-#print(All_tasks)
-#DAG = init_task_tree(file_name="../tasks_file/merge_sort.json" )
+def get_critical_path(DAG):
+    """
+    compute critical path of the Graphe
+    """
+    critical_path = 0
+    if len(DAG.children) == 0:
+        return DAG.total_work()
+    else:
+        for child in DAG.children:
+           child_critical_path = get_critical_path(child)
+           if(child_critical_path > critical_path):
+               critical_path = child_critical_path + child.total_work()
+        return critical_path
+
+def get_work(DAG):
+    """
+    compute the total work in the graphe
+    """
+    total_work = 0
+    if len(DAG.children) == 0:
+        return DAG.total_work()
+    else:
+        for child in DAG.children:
+            child_total_work = get_work(child)
+            total_work = child_total_work + child.total_work()
+        return total_work
+
+
+
+
+#DAG = init_task_tree(file_name="../tasks_file/merge_sort32.json" )
 
 #display_DAG(DAG)
+
+#critical_path = get_critical_path(DAG)
+#work = get_work(DAG)
+
+#print("work:", work, "critical_path", critical_path)
 
 
 

@@ -1,0 +1,37 @@
+Ce qu'il faut finire vite fait.
+
+*Rediger le résultat que j'ai avec les différent prog pour une reproduction simplement les même simulation au cas de besoin. (ce vendredi.)
+
+* graphes vs divisble : 1 jour
+expes avec meme W et D et p et l
+-> quelles diffs sur l'overhead
+conjecture fred : plus de variabilite sur les graphes
+
+* passe de verification du code actuel
+
+1er Possibilité de travail:
+    * moteur de graphes dans le simulateur
+     - comprendre le principe (quelques jours)
+     - coder (1 jour)
+     - debug (quelques jours)
+
+* modele d'acces aux donnees
+  - modele ?
+  - vrais expes pour trouver le modele
+  - simulateur (mettre a jour)
+  - simulations
+  - output1 : meilleurs algos de scheduling
+  - output2 : comparaisons de modeles
+  - preuves ????
+
+
+2éme Possibilité de travail :
+    * preuve : (sur deux cluster)
+      - t en fonction de proc, proba, W, D, lambda
+        + conjecture ?
+          nb vols distants ?
+          nb vols locaux ?
+           ratio des 2 ?
+        + preuve ?
+
+

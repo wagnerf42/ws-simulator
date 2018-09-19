@@ -59,14 +59,13 @@ class Simulator:
         """
         start Simulation of the system
         """
+        step = 0
         while self.total_work > 0:
             event = self.next_event()
-            #event.display()
             self.time = event.time
             event.execute()
-
-        for processor in self.processors:
-            processor.display()
+        #    print("work : " , step , " " ,  self.total_work )
+            step += 1
         if __debug__:
             if self.log_file is not None:
                 self.logger.end_of_logger(clusters_number=2,

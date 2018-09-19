@@ -16,12 +16,12 @@ class Task:
     childrens : list of dependent tasks
     """
 
-    def __init__(self, work, children, children_id=None, task_id=0, is_DAG=False):
+    def __init__(self, work, children, children_id=None, task_id=0, start_time=0  ,is_DAG=False):
         self.id = task_id # id of task will be update when we intialise tasks
         self.work = work
         self.children = children
         self.children_id = children_id
-        self.start_time = 0  # at which time is the task started
+        self.start_time = start_time  # at which time is the task started
         self.dependent_tasks_number = 0 # it will be intialised when we initialise tasks
         self.is_DAG = is_DAG
 
@@ -55,7 +55,7 @@ class Task:
         """
         return all children tasks
         """
-        #print("\nEnd of execution of : ", self.id ,"(",self.total_work(),")" , " tasks ready" , self.children_id)
+        #print(" End of execution of : ", self.id ,"(",self.total_work(),")" , " tasks ready" , self.children_id)
         #print("number of children id: ", self.children_id)
         if self.is_DAG:
             ready_children = []
@@ -107,9 +107,8 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     create the task tree recursively
     """
     if file_name is not None:
-        tasks = read_task_tree_from_json(file_name)
-        tasks[0].display()
-        return tasks[0]
+        tasks, work, depth = read_task_tree_from_json(file_name)
+        return tasks[0], work, depth
     else:
         if total_work//2 < threshold:
             return Task(total_work, [])
@@ -171,13 +170,18 @@ def read_task_tree_from_json(file_name):
     #    )
     #    for (i, l) in enumerate(logs) ]
 
-    for task_indix in range(len(logs)):
+    for task_indix in range(len(logs["tasks_logs"] )):
         current_task = Task(
-            logs[task_indix]["end_time"]-logs[task_indix]["start_time"],
-            [], children_id=logs[task_indix]["children"], task_id=task_indix, is_DAG=True)
+            logs["tasks_logs"][task_indix]["end_time"]-logs["tasks_logs"][task_indix]["start_time"],
+            [], children_id=logs["tasks_logs"][task_indix]["children"], task_id=task_indix,
+            start_time=logs["tasks_logs"][task_indix]["start_time"],  is_DAG=True)
         tasks.append(current_task)
 
-    return update_dependencies(tasks)
+    work = compute_work(tasks)
+    tasks = update_dependencies(tasks)
+    depth = compute_depth(tasks)
+
+    return tasks, work, depth
 
 
 def display_DAG(DAG, level="", level_num=0):
@@ -189,12 +193,41 @@ def display_DAG(DAG, level="", level_num=0):
         display_DAG(child, level=level, level_num=level_num)
 
 
+def compute_depth(tasks):
+    """
+    compute the depth of the graph of given tasks.
+    """
+    depths = [0 for _ in tasks]
+    size = len(tasks)
+    tasks_ids = list(range(size))
+    tasks_ids.sort(key=lambda i: tasks[i].start_time)#, reversed=True)
+    tasks_ids.reverse()
+
+    for task_id in tasks_ids:
+        task = tasks[task_id]
+        if task.children:
+            depths[task_id] = task.total_work() + max(depths[c] for c in task.children_id)
+        else:
+            depths[task_id] = task.total_work()
+
+    return depths[0]
+
+
+def compute_work(tasks):
+    """
+    compute the total work of the graph of given tasks.
+    """
+    return sum(t.total_work() for t in tasks)
+
+
 def get_critical_path(DAG):
     """
     compute critical path of the Graphe
     """
+    return DAG.total_work() + max(get_critical_path(c) for c in DAG.children)
     critical_path = 0
-    if len(DAG.children) == 0:
+    # if len(DAG.children) == 0:
+    if not DAG.children:
         return DAG.total_work()
     else:
         for child in DAG.children:
@@ -207,6 +240,7 @@ def get_work(DAG):
     """
     compute the total work in the graphe
     """
+    return DAG.total_work() + sum(get_critical_path(c) for c in DAG.children)
     total_work = 0
     if len(DAG.children) == 0:
         return DAG.total_work()
@@ -223,8 +257,8 @@ def get_work(DAG):
 
 #display_DAG(DAG)
 
-#critical_path = get_critical_path(DAG)
-#work = get_work(DAG)
+
+#work, depth = get_info(DAG)
 
 #print("work:", work, "critical_path", critical_path)
 

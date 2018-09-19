@@ -148,6 +148,7 @@ class Processor:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
             ready_tasks = self.current_task.end_execute_task()
+            #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.work, ")" )
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
@@ -156,6 +157,10 @@ class Processor:
                     self.tasks.extend(self.current_task.end_execute_task())
                     assert self.tasks
                     self.current_task = self.tasks.pop()
+                if self.cluster == 0:
+                    self.simulator.steal_info["W0"] += self.current_task.total_work()
+                else:
+                    self.simulator.steal_info["W1"] += self.current_task.total_work()
                 self.current_task.start_time = self.current_time
                 becoming_idle_time = self.current_time + \
                 self.current_task.work//self.speed
@@ -212,6 +217,7 @@ class Processor:
                 assert self.tasks
                 self.current_task = self.tasks.pop()
             assert self.current_task.work
+            self.simulator.steal_info["W0"] += stolen_task.total_work()
             self.current_task.start_time = self.current_time
             becoming_idle_time = self.current_time + \
                 self.current_task.work//self.speed

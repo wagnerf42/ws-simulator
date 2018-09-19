@@ -1,4 +1,4 @@
-# /usr/bin/env python3.5
+#!/usr/bin/env python3.5
 """
 Simulation System configuration
 """
@@ -8,7 +8,7 @@ from math import floor
 from random import seed
 from time import clock
 from wssim.simulator import Simulator
-from wssim.task import Task, init_task_tree, get_work, get_critical_path
+from wssim.task import Task, init_task_tree, get_work, get_critical_path, display_DAG
 from wssim import activate_logs
 from wssim.topology.cluster import Topology
 #from wssim.topology.clusters import Topology
@@ -105,10 +105,16 @@ def main():
     else:
         latencies = list(floating_range(*arguments.latencies_config))
 
-    if not arguments.work_config:
-        works = [arguments.work]
+    if arguments.json_file is not None:
+        first_task,work,depth = init_task_tree(file_name=arguments.json_file)
+        works = [work]
+        print("# Work:{}, depth:{}, work/p+depth:{}".format(
+            work, depth, work/arguments.processors + depth))
     else:
-        works = list(power_range(*arguments.work_config))
+        if not arguments.work_config:
+            works = [arguments.work]
+        else:
+            works = list(power_range(*arguments.work_config))
 
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
@@ -118,12 +124,7 @@ def main():
 
     for work in works:
         for threshold in arguments.task_threshold:
-            if arguments.json_file is not None:
-                first_task = init_task_tree(file_name=arguments.json_file)
-                work = get_work(first_task)
-                critical_path = get_critical_path(first_task)
-                print("#",work/arguments.processors + critical_path)
-            else:
+            if arguments.json_file is None:
                 first_task = init_task_tree(total_work=work, threshold=threshold)
 
             for probability in probabilities:
@@ -138,8 +139,11 @@ def main():
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
                         if arguments.tasks or arguments.json_file is not None:
+                            if arguments.json_file is not None:
+                                print("read file")
+                                first_task, work, depth = init_task_tree(file_name=arguments.json_file)
                             simulator.reset(work, first_task)
-                            print(work)
+                            #display_DAG(first_task)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()

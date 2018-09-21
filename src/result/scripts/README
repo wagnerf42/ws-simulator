@@ -1,0 +1,13 @@
+
+./script_get_plot.sh : 
+    - prend un ensemble de fichier de ce type ( #prb    R-l ISR ESR runTime processors      work    taskThreshold   lGranularity    rGranularity    IDATAT  EDATAT  W0  W1 )
+
+    la commande : ./script_get_plot.sh ../cluster/resultats_pour_fitting_3_type_de_taches/Divisible_load/*
+
+
+pour chaque fichier, le script :
+    - execute le fichier fitting.gnu : pour exctraire les variables de la formule declarer dans le fichier
+
+    - sauvegard le resultat dans un fichier.fit, et apres il trace la fonction avec les courbes
+
+            

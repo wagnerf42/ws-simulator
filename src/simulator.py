@@ -143,7 +143,6 @@ def main():
                                 print("read file")
                                 first_task, work, depth = init_task_tree(file_name=arguments.json_file)
                             simulator.reset(work, first_task)
-                            #display_DAG(first_task)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()

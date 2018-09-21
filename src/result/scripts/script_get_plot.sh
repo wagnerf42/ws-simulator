@@ -1,8 +1,8 @@
 #!/bin/bash
 
-file_name=`echo $1| cut -d "_" -f1`
-
-
+#file_name=`echo $1| cut -d "/" -f1`
+echo "give file_name to save results  : "
+read file_name
 ./script.sh $* > $file_name".fit"
 
 cat head_plot  > $file_name".gnu"

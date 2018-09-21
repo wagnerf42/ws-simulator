@@ -1,0 +1,89 @@
+\documentclass{article}
+\usepackage{color}
+\usepackage[utf8]{inputenc}
+
+
+
+\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+
+
+\title{Travail sur Work Stealing avec Fred, Denis, Nicolas}
+\begin{document}
+\maketitle{}
+   \begin{abstract}
+       Dans ce document, on va détailler les différents travaux sur le work stealing
+       (ce qu'on a, ce qu'on a fait, ce qu'il faut finir, et ce qu'on va faire)
+       le but de ce document est de clarifier les choses et de savoir qu'est-ce qu'on peut faire avec les données qu'on a et ce qu'on peut faire.
+   \end{abstract}
+
+
+
+   \section{Work Stealing avec Communication}
+
+   Le défi de l'algorithme work stealing sur les plates-formes distribuées est de prendre en considération
+   \textcolor{red}{le temps de communication pour transfert les tâches} après un vol réussit entre deux processeurs (voleur et victime).
+   \\\\
+   \textbf{Coût de communication en tant que latence:}
+   le cas où on considère la latence permet de donner \textcolor{red}{le même coût pour toutes les communications}
+   (pour envoyer une demande de travail, pour envoyer une réponse vide ou envoyer un ensemble de tâches).
+   \\\\
+   \textbf{Coût de communication en tant que Band passante:}
+   Dans le cas où on considère la Band passante, le coût communication entre deux processeurs s'influence par deux facteurs :
+   1-) la quantité de données transférées entre les deux processeurs,
+   2-) la charge qui existe dans le canal de communication qui lie les deux processeurs concernés.
+
+    Le cas de la band passante pose la question suivante :
+    \textcolor{blue}{quelle est la topologie de communication qu'on va utiliser? :}
+    (un seul canal de communication entre tous les processeurs ? un canal entre chaque deux processeurs? ou quoi ? )
+
+
+   \section{Notre simulateur}
+    Pour les simulations, j'ai développé avec Fred un simulateur paramétrable,
+    qui peut exécuter un ensemble de taches sur un ensemble de machines suivants différents algorithmes.
+    Je vais détailler dans cette partie les fonctionnalités et les limites de notre simulateur :
+\\\\
+    \textbf{les tâches:} le simulateur peut prendre en entrée une quantité de travail $W$,
+    cette quantité peut être gérée comme un ensemble de tâches indépendantes.
+    Le simulateur peut aussi prendre un seuille avec $W$ pour créer un arbre de tâches
+    (les feuilles sont des tâches réelles dont la taille égale à peu pès au seuille et les nodes sont des taches de taille 0).
+
+    Le simulateur peut aussi prendre comme entrée un fichier JSON qui contient des arbres réels avec toutes les informations sur les tâches et les précédences.
+\\\\
+    \textbf{les processeurs:} Le simulateur permet de créer un ensemble de processeurs dans deux topologies:
+    \begin{enumerate}
+        \item Un seul cluster de $p$ processeurs ou la communication égale la latence donner par l'utilisateur.
+        \item Deux clusters avec le même nombre de processeurs ou la communication à l'intérieur et à l'extérieur sont configurables.
+    \end{enumerate}
+\textbf{les communication:} Le simulateur ne prend en compte pour le moment que la latence dans les Communication, dans les deux version un et deux clusters.
+\textcolor{red}{\textbf{la version qui prend en compte la band passante neccesit une discussion pour definir l'architecture et les differents régles}}
+\newpage
+    \textbf{l'algorithme WS:} Le simulateur utilise le work stealing classique et plusieurs paramètres sont configurables :
+        \begin{enumerate}
+            \item REMOTE STEAL PROBABILITY : variable qui défini la probabilité pour volé à l'extérieur dans le cas de deux clusters.
+            \item LOCAL GRANULARITY
+            \item REMOTE GRANULARITY
+            \item TASK THRESHOLD
+            \item SIMULTANEOUSLY STEAL
+        \end{enumerate}
+
+
+   \section{les premier travaux : sur 1 cluster}
+   Dans cette partie, on a utiliser notre simulateur,
+   on analysé les résultats de simulation en changant plusieurs parammettres.
+   la premier tentative a été de faire un simple fitting,
+   et extraire une borne sur le temps d'execution. (cette tentative a été refuser par WAOWA conferences)
+
+   Aprés on a bossé sur une eprouve mathématique
+
+
+   
+   le projet sur un seul cluster est soumiss dans TOPC journal, on attent encore une réponse.
+   Un résumer est présenté a ECCO 
+
+   \section{en cours : exp sur 2 cluster}
+
+   \section{les idées :}
+
+
+\end{document}

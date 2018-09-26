@@ -31,6 +31,20 @@ def power_range(start, end, step):
         yield current_value
         current_value *= step
 
+def add_tasks_to_json(tasks, tasks_data):
+    """
+    add tasks list to Json file
+    """
+    info = dict()
+    info["id"] = tasks.id
+    info["start_time"] = tasks.start_time
+    info["end_time"] = 0
+    info["thread_id"] = 0
+    info["children"]=[child.id for child in tasks.children]
+    tasks_data[tasks.id]= info
+    for child in tasks.children:
+        add_tasks_to_json(child,tasks_data)
+
 
 def main():
     """
@@ -116,6 +130,7 @@ def main():
         else:
             works = list(power_range(*arguments.work_config))
 
+    simulator.json_data["threads_number"] = arguments.processors
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
@@ -124,8 +139,8 @@ def main():
 
     for work in works:
         for threshold in arguments.task_threshold:
-            if arguments.json_file is None:
-                first_task = init_task_tree(total_work=work, threshold=threshold)
+           # if arguments.json_file is None and arguments.tasks:
+           #     first_task = init_task_tree(total_work=work, threshold=threshold)
 
             for probability in probabilities:
                 arguments.probability = probability
@@ -142,10 +157,18 @@ def main():
                             if arguments.json_file is not None:
                                 print("read file")
                                 first_task, work, depth = init_task_tree(file_name=arguments.json_file)
+                            else:
+                                first_task = init_task_tree(work, threshold)
+                                tasks_data = dict()
+                                add_tasks_to_json(first_task, tasks_data)
+                                simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
                             simulator.reset(work, first_task)
                         else:
                             simulator.reset(work, Task(work, []))
                         simulator.run()
+
+                        simulator.json_data["duration"]=simulator.time
+                        print("data json = ",simulator.json_data)
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
                               \t{}\t{}\t{}\t{}"
                               .format(

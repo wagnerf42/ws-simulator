@@ -55,7 +55,7 @@ class Task:
         """
         return all children tasks
         """
-        #print(" End of execution of : ", self.id ,"(",self.total_work(),")" , " tasks ready" , self.children_id)
+       # print(" End of execution of : ", self.id ,"(",self.total_work(),")")
         #print("number of children id: ", self.children_id)
         if self.is_DAG:
             ready_children = []
@@ -87,10 +87,9 @@ class Task:
         display tasks with work and its childrens
         """
         if is_tree:
-            print("task_id:{} Work:{} children_id:{} children:{} dependent_tasks_number:{}"
+            print("task_id:{} Work:{} children:{}, start_time:{}"
                   .format(
-                      self.id, self.work, self.children_id, self.children,
-                      self.dependent_tasks_number
+                      self.id, self.work, [t.id for t in self.children], self.start_time
                   ))
         else:
             print("  "*depth, "[")
@@ -110,13 +109,25 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
         tasks, work, depth = read_task_tree_from_json(file_name)
         return tasks[0], work, depth
     else:
-        if total_work//2 < threshold:
-            return Task(total_work, [])
+        #if total_work//2 < threshold:
+        if total_work <= threshold:
+           # print("T", task_id )
+            return Task(total_work, [], task_id=task_id)
         else:
-            return Task(0, [
-                init_task_tree(total_work=total_work//2, threshold=threshold),
-                init_task_tree(total_work=total_work-total_work//2, threshold=threshold)
-            ])
+           # print("T", task_id , " -> T",(task_id*2 + 1) , " , T", (task_id*2 + 2))
+            if (total_work//2 <= threshold):
+                return Task(0, [
+                    init_task_tree(total_work=threshold  , threshold=threshold, task_id=(task_id*2 + 1)),
+                    init_task_tree(total_work=total_work-threshold, threshold=threshold, task_id=(task_id*2 + 2))
+                    ], task_id=task_id)
+            else:
+                return Task(0, [
+                    init_task_tree(total_work=total_work//2, threshold=threshold, task_id=(task_id*2 + 1)),
+                    init_task_tree(total_work=total_work-total_work//2, threshold=threshold, task_id=(task_id*2 +2))
+                    ], task_id=task_id)
+
+
+
 
 
 CACHE = dict()
@@ -134,9 +145,9 @@ def init_task_tree_with_cache(total_work, threshold):
         result = Task(0, [
             init_task_tree(total_work//2, threshold),
             init_task_tree(total_work-total_work//2, threshold)
-        ])
+            ])
 
-    CACHE[(total_work, threshold)] = deepcopy(result)
+        CACHE[(total_work, threshold)] = deepcopy(result)
     return result
 
 

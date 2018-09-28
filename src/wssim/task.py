@@ -106,8 +106,8 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     create the task tree recursively
     """
     if file_name is not None:
-        tasks, work, depth = read_task_tree_from_json(file_name)
-        return tasks[0], work, depth
+        tasks, work, depth, logs = read_task_tree_from_json(file_name)
+        return tasks[0], work, depth, logs
     else:
         #if total_work//2 < threshold:
         if total_work <= threshold:
@@ -192,7 +192,7 @@ def read_task_tree_from_json(file_name):
     tasks = update_dependencies(tasks)
     depth = compute_depth(tasks)
 
-    return tasks, work, depth
+    return tasks, work, depth, logs
 
 
 def display_DAG(DAG, level="", level_num=0):

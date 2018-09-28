@@ -2,7 +2,7 @@
 """
 Simulation System configuration
 """
-
+import json
 import argparse
 from math import floor
 from random import seed
@@ -37,13 +37,14 @@ def add_tasks_to_json(tasks, tasks_data):
     """
     info = dict()
     info["id"] = tasks.id
-    info["start_time"] = tasks.start_time
+    info["start_time"] = 0
     info["end_time"] = 0
     info["thread_id"] = 0
     info["children"]=[child.id for child in tasks.children]
     tasks_data[tasks.id]= info
     for child in tasks.children:
         add_tasks_to_json(child,tasks_data)
+
 
 
 def main():
@@ -87,7 +88,6 @@ def main():
                         help="activate traces")
     parser.add_argument("-tt", dest="task_threshold", default=[100],
                         nargs='+', type=int, help="threshold for real tasks")
-    parser.add_argument("-json", dest="json_file", default=None)
     parser.add_argument("-lg", dest="local_granularity", default=None, type=int,
                         help="local stealing granularity")
     parser.add_argument("-rg", dest="remote_granularity", default=None,
@@ -95,6 +95,8 @@ def main():
     parser.add_argument("-f", dest="log_file", default=None)
     parser.add_argument("-sim", dest="is_simultaneous", action="store_true",
                         help="activate simultaneously steal")
+    parser.add_argument("-json_in", dest="json_file_in", default=None)
+    parser.add_argument("-json_out", dest="json_file_out", default=None)
     arguments = parser.parse_args()
 
 
@@ -119,8 +121,10 @@ def main():
     else:
         latencies = list(floating_range(*arguments.latencies_config))
 
-    if arguments.json_file is not None:
-        first_task,work,depth = init_task_tree(file_name=arguments.json_file)
+    if arguments.json_file_in is not None:
+        first_task,work,depth,logs  = init_task_tree(file_name=arguments.json_file_in)
+        if arguments.json_file_out:
+            simulator.json_data["tasks_logs"] = logs["tasks_logs"]
         works = [work]
         print("# Work:{}, depth:{}, work/p+depth:{}".format(
             work, depth, work/arguments.processors + depth))
@@ -129,8 +133,8 @@ def main():
             works = [arguments.work]
         else:
             works = list(power_range(*arguments.work_config))
-
-    simulator.json_data["threads_number"] = arguments.processors
+    if arguments.json_file_out:
+        simulator.json_data["threads_number"] = arguments.processors
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
@@ -139,7 +143,7 @@ def main():
 
     for work in works:
         for threshold in arguments.task_threshold:
-           # if arguments.json_file is None and arguments.tasks:
+           # if arguments.json_file_in is None and arguments.tasks:
            #     first_task = init_task_tree(total_work=work, threshold=threshold)
 
             for probability in probabilities:
@@ -149,26 +153,38 @@ def main():
                     simulator.topology.update_remote_latency(latency)
                     arguments.local_granularity = 2
                     arguments.remote_granularity = 2*latency
+                    if arguments.tasks:
+                        arguments.local_granularity = threshold
                     simulator.topology.update_granularity(
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
-                        if arguments.tasks or arguments.json_file is not None:
-                            if arguments.json_file is not None:
+                        if arguments.tasks or arguments.json_file_in is not None:
+                            if arguments.json_file_in is not None:
                                 print("read file")
-                                first_task, work, depth = init_task_tree(file_name=arguments.json_file)
+                                first_task, work, depth, logs = init_task_tree(file_name=arguments.json_file_in)
+                                if arguments.json_file_out:
+                                    simulator.json_data["tasks_logs"] = logs["tasks_logs"]
                             else:
                                 first_task = init_task_tree(work, threshold)
-                                tasks_data = dict()
-                                add_tasks_to_json(first_task, tasks_data)
-                                simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
+                                if arguments.json_file_out:
+                                    tasks_data = dict()
+                                    add_tasks_to_json(first_task, tasks_data)
+                                    simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
+
                             simulator.reset(work, first_task)
                         else:
                             simulator.reset(work, Task(work, []))
+                        #print("1> ",simulator.json_data["tasks_logs"][0]["children"])
+                        print("run...")
                         simulator.run()
+                        if arguments.json_file_out:
+                            simulator.json_data["duration"] = simulator.time * 10
+                            simulator.json_data["tasks_number"] = len(simulator.json_data["tasks_logs"])
+                            with open(arguments.json_file_out , 'w') as outfile:
+                                json.dump( simulator.json_data, outfile, indent=2)
 
-                        simulator.json_data["duration"]=simulator.time
-                        print("data json = ",simulator.json_data)
+
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
                               \t{}\t{}\t{}\t{}"
                               .format(

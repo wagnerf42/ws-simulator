@@ -39,6 +39,7 @@ class Processor:
             self.current_task = first_task
             self.current_task.start_time = 0
             self.simulator.steal_info["W0"] = self.current_task.total_work()
+            update_tasks_on_json(self.simulator.json_data, self.current_task, 0, self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.work//self.speed, self))
         else:
@@ -156,7 +157,9 @@ class Processor:
                 while self.current_task.work == 0:
                     self.tasks.extend(self.current_task.end_execute_task())
                     assert self.tasks
+                    update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                     self.current_task = self.tasks.pop()
+                update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 if self.cluster == 0:
                     self.simulator.steal_info["W0"] += self.current_task.total_work()
                 else:
@@ -164,6 +167,7 @@ class Processor:
                 self.current_task.start_time = self.current_time
                 becoming_idle_time = self.current_time + \
                 self.current_task.work//self.speed
+                assert self.current_task.work >= self.speed
                 self.simulator.add_event(IdleEvent(becoming_idle_time, self))
                 if __debug__:
                     if self.simulator.log_file is not None:
@@ -215,8 +219,10 @@ class Processor:
             while self.current_task.work == 0:
                 self.tasks.extend(self.current_task.end_execute_task())
                 assert self.tasks
+                update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 self.current_task = self.tasks.pop()
             assert self.current_task.work
+            update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
             self.simulator.steal_info["W0"] += stolen_task.total_work()
             self.current_task.start_time = self.current_time
             becoming_idle_time = self.current_time + \
@@ -234,3 +240,38 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(victim, self,
                                                         data="Response")
+
+
+
+def update_tasks_on_json(json_data, task, start_time, processor_number):
+    """
+    update tasks info on json file direct
+    """
+
+    #print("tasks_id", task.id, id(task),  " thread_id:", processor_number, "start_time:", start_time, " end_time:", start_time + task.work )
+    #print("id", id(task), "T", task.id, "(", task.work, ")")
+    if len(json_data) >= 1:
+        json_data["tasks_logs"][task.id]["id"] = task.id 
+        json_data["tasks_logs"][task.id]["thread_id"] = processor_number
+        json_data["tasks_logs"][task.id]["start_time"] = start_time * 10
+        json_data["tasks_logs"][task.id]["end_time"] = ( start_time + task.work ) * 10
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

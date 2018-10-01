@@ -5,8 +5,6 @@ holding work of task and list of its children for the simulation.
 """
 from copy import deepcopy
 import json
-from collections import deque
-
 
 
 class Task:
@@ -16,55 +14,10 @@ class Task:
     childrens : list of dependent tasks
     """
 
-    def __init__(self, work, children, children_id=None, task_id=0, start_time=0):
-        self.id = task_id # id of task will be update when we intialise tasks
+    def __init__(self, task_id, work, start_time):
+        self.id = task_id  # id of task will be update when we intialise tasks
         self.work = work
-        self.children = children
-        self.children_id = children_id
-        self.start_time = start_time  # at which time is the task started
-        self.dependent_tasks_number = 0 # it will be intialised when we initialise tasks
-
-    def total_work(self):
-        """
-        returns work contained in ourselves and all our children
-        """
-        if self.children:
-            #return sum(child.total_work() for child in self.children)
-            return self.work
-        else:
-            return self.work
-
-    def split_work(self, current_time, granularity):
-        """
-        cut task in two if we have enough remaining work (updates self,
-        returns next idle time event and new task)
-        """
-        computed_work = current_time - self.start_time
-        remaining_work = self.work - computed_work
-        assert remaining_work >= 0
-        my_share = remaining_work//2
-        if my_share > granularity:
-            # we have enough work to share
-            self.work = computed_work + my_share
-            other_share = remaining_work - my_share
-            return current_time + my_share, \
-                Task(other_share, [])
-
-    def end_execute_task(self, is_DAG):
-        """
-        return all children tasks
-        """
-        if is_DAG:
-            ready_children = []
-            # reversed because next task to execute should be pushed last
-            for child in reversed(self.children):
-                child.update_dependent_task()
-                if child.dependent_tasks_number == 0:
-                    ready_children.append(child)
-            #print("ready_children : ", ready_children)
-            return ready_children
-        else:
-            return self.children
+        self.start_time = start_time
 
     def finishes_at(self, finish_time, processor_speed):
         """
@@ -72,30 +25,87 @@ class Task:
         """
         return (finish_time - self.start_time) * processor_speed == self.work
 
+
+class Divisible_load_task(Task):
+    """
+    class for divisible load tasks
+    """
+
+    def __init__(self, work, start_time=0, task_id=0):
+        super().__init__(task_id, work, start_time)
+
+    def total_work(self):
+        """
+        returns work
+        """
+        return self.work
+
+    def split_work(self, current_time, granularity):
+        """
+        cut task in two if we have enough remaining work
+        update update the work on the current task
+        return new Divisible load task
+        """
+        computed_work = current_time - self.start_time
+        remaining_work = self.work - computed_work
+        assert remaining_work >= 0
+        my_share = remaining_work//2
+        if my_share > granularity:
+            self.work = computed_work + my_share
+            other_share = remaining_work - my_share
+            return current_time + my_share, \
+                    Divisible_load_task(other_share)
+
+    def end_execute_task(self):
+        """
+        return empty list because Divisible load task does't have childre
+        """
+        return []
+
+class DAG_task(Task):
+    """
+    class for divisible load tasks
+    """
+
+    def __init__(self, work, children, children_id, task_id, start_time=0):
+        super().__init__(task_id, work, start_time)
+        self.children = children
+        self.children_id = children_id
+        self.start_time = start_time
+#                 at which time is the task started
+        self.dependent_tasks_number = 0
+#                 it will be intialised when we initialise tasks
+
+    def total_work(self):
+        """
+        returns work
+        """
+#       return sum(child.total_work() for child in self.children)
+        return self.work
+
+    def end_execute_task(self):
+        """
+        return all children tasks
+        """
+        if self.child:
+            return self.children
+        else:
+            ready_children = []
+            # reversed because next task to execute should be pushed last
+            for child in reversed(self.children):
+                child.update_dependent_task()
+                if child.dependent_tasks_number == 0:
+                    ready_children.append(child)
+            # print("ready_children : ", ready_children)
+            return ready_children
+
     def update_dependent_task(self):
        """
        decrease the number of dependents task when it's finished
        When the number of dependent tasks is 0, we return the tasks with true.
        """
+
        self.dependent_tasks_number -= 1
-
-    def display(self, depth=0, is_tree=True):
-        """
-        display tasks with work and its childrens
-        """
-        if is_tree:
-            print("task_id:{} Work:{} children:{}, start_time:{}"
-                  .format(
-                      self.id, self.work, [t.id for t in self.children], self.start_time
-                  ))
-        else:
-            print("  "*depth, "[")
-            print("  "*depth, id(self), " ", self.work)
-            for child in self.children:
-                child.display(depth+1)
-            print("  "*depth, "]")
-
-
 
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
@@ -109,22 +119,19 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
         #if total_work//2 < threshold:
         if total_work <= threshold:
            # print("T", task_id )
-            return Task(total_work, [], task_id=task_id)
+            return DAG_task(total_work, [], task_id)
         else:
            # print("T", task_id , " -> T",(task_id*2 + 1) , " , T", (task_id*2 + 2))
             if (total_work//2 <= threshold):
-                return Task(0, [
+                return DAG_task(0, [
                     init_task_tree(total_work=threshold  , threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-threshold, threshold=threshold, task_id=(task_id*2 + 2))
-                    ], task_id=task_id)
+                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id)
             else:
-                return Task(0, [
+                return DAG_task(0, [
                     init_task_tree(total_work=total_work//2, threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-total_work//2, threshold=threshold, task_id=(task_id*2 +2))
-                    ], task_id=task_id)
-
-
-
+                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id)
 
 
 CACHE = dict()
@@ -179,9 +186,9 @@ def read_task_tree_from_json(file_name):
     #    for (i, l) in enumerate(logs) ]
 
     for task_index, task in enumerate(logs["tasks_logs"]):
-        current_task = Task(
+        current_task = DAG_task(
             task["end_time"]-task["start_time"],
-            [], children_id=task["children"], task_id=task_index,
+            [], task["children"], task_index,
             start_time=task["start_time"])
         tasks.append(current_task)
 
@@ -226,50 +233,5 @@ def compute_work(tasks):
     compute the total work of the graph of given tasks.
     """
     return sum(t.total_work() for t in tasks)
-
-
-def get_critical_path(DAG):
-    """
-    compute critical path of the Graphe
-    """
-    return DAG.total_work() + max(get_critical_path(c) for c in DAG.children)
-    critical_path = 0
-    # if len(DAG.children) == 0:
-    if not DAG.children:
-        return DAG.total_work()
-    else:
-        for child in DAG.children:
-           child_critical_path = get_critical_path(child)
-           if(child_critical_path > critical_path):
-               critical_path = child_critical_path + child.total_work()
-        return critical_path
-
-def get_work(DAG):
-    """
-    compute the total work in the graphe
-    """
-    return DAG.total_work() + sum(get_critical_path(c) for c in DAG.children)
-    total_work = 0
-    if len(DAG.children) == 0:
-        return DAG.total_work()
-    else:
-        for child in DAG.children:
-            child_total_work = get_work(child)
-            total_work = child_total_work + child.total_work()
-        return total_work
-
-
-
-
-#DAG = init_task_tree(file_name="../tasks_file/merge_sort32.json" )
-
-#display_DAG(DAG)
-
-
-#work, depth = get_info(DAG)
-
-#print("work:", work, "critical_path", critical_path)
-
-
 
 

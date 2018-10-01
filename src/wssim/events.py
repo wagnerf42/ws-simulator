@@ -5,11 +5,13 @@ module des evenemenet
 import wssim
 # pylint: disable=too-few-public-methods
 
+
 class Event():
     """
     Base event class for all events in the system.
     do not use directly but derive from.
     """
+
     def __init__(self, time, processor, event_type):
         self.time = time
         self.processor = processor
@@ -43,6 +45,7 @@ class IdleEvent(Event):
     """
     Class of Idle_event
     """
+
     def __init__(self, becomming_idle_time, processor):
         super().__init__(becomming_idle_time, processor, "IDLE")
 
@@ -59,10 +62,12 @@ class IdleEvent(Event):
         """
         print("P", self.processor.number, "becomming idle at ", self.time)
 
+
 class StealRequestEvent(Event):
     """
     a steal request event happens when a victim receives a steal request.
     """
+
     def __init__(self, steal_time, stealer, victim):
         super().__init__(steal_time, stealer, "REQUEST")
         self.victim = victim
@@ -81,12 +86,14 @@ class StealRequestEvent(Event):
         print("P", self.victim.number, " receive work request from P",
               self.processor.number, " at ", self.time)
 
+
 class StealAnswerEvent(Event):
     """
     a steal answer event happens when a stealer receives answer from
     his victim. it contains the stolen work amount or 0 in case of
     failure.
     """
+
     def __init__(self, reply_time, stealer, victim, stolen_task):
         super().__init__(reply_time, stealer, "ANSWER")
         self.victim = victim
@@ -97,14 +104,14 @@ class StealAnswerEvent(Event):
         execute Steal Answer
         """
         super().execute()
-        #self.victim.frees_network()
+        # self.victim.frees_network()
         self.processor.steal_answer(self.stolen_task, self.victim)
-
 
     def display(self):
         """
         display event
         """
+
         print("P", self.processor.number, " receive response (",
               self.stolen_task, ") from P", self.victim.number,
               " at ", self.time)

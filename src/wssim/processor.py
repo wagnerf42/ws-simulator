@@ -6,6 +6,7 @@ holding processors states for the simulation.
 import wssim
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
+from wssim.task import DAG_task, Divisible_load_task
 
 class Processor:
     """
@@ -71,7 +72,7 @@ class Processor:
         if self.tasks:
             return self.tasks.popleft()
         elif self.current_task:
-            if not self.simulator.topology.is_DAG:
+            if type(self.current_task) is Divisible_load_task: 
 
                 if self.cluster == stealer.cluster:
                     granularity = self.simulator.topology.local_granularity
@@ -149,14 +150,14 @@ class Processor:
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
-            ready_tasks = self.current_task.end_execute_task(self.simulator.topology.is_DAG)
+            ready_tasks = self.current_task.end_execute_task()
             #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.work, ")" )
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 while self.current_task.work == 0:
-                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.topology.is_DAG))
+                    self.tasks.extend(self.current_task.end_execute_task())
                     assert self.tasks
                     update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                     self.current_task = self.tasks.pop()
@@ -218,7 +219,7 @@ class Processor:
             self.current_task = stolen_task
             #TODO: repetition
             while self.current_task.work == 0:
-                self.tasks.extend(self.current_task.end_execute_task(self.simulator.topology.is_DAG))
+                self.tasks.extend(self.current_task.end_execute_task())
                 assert self.tasks
                 update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 self.current_task = self.tasks.pop()

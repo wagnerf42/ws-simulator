@@ -6,6 +6,10 @@ Ce qu'il faut finire vite fait.
 expes avec meme W et D et p et l
 -> quelles diffs sur l'overhead
 conjecture fred : plus de variabilite sur les graphes
+---> c'est faux, il y a une perte de perfs sur les graphes.
+--> par exemple pour le merge sort, le generateur cree peu de taches de merge pour les niveaux eleves.
+--> il y a donc une contention sur ce niveau. (reste lié à D)
+--> cet effet disparaitra pour les graphes autogeneres (01/10/2018)
 
 * passe de verification du code actuel
 

@@ -7,10 +7,12 @@ from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
 
+
 class Simulator:
     """
     Simulation
     """
+
     def __init__(self, processors_number, log_file, topology):
         self.log_file = log_file
         self.time = 0
@@ -146,9 +148,9 @@ class Simulator:
         """
         add processor to the active processor list.
         """
-        #print("+ P", processor.number)
-        #if self.is_beginning:
-            #print("+ P", processor.number)
+        # print("+ P", processor.number)
+        # if self.is_beginning:
+        #     print("+ P", processor.number)
         self.active_processors[processor.number] = processor.number
         if self.is_beginning and len(self.active_processors) == \
                 len(self.processors):
@@ -159,9 +161,8 @@ class Simulator:
         """
         remove processor to the active processor list.
         """
-        #if processor.number in self.active_processors:
-           # print("- P", processor.number)
-           # self.active_processors.pop(processor.number)
-        #if len(self.active_processors) == 0:
-
+        # if processor.number in self.active_processors:
+        #    print("- P", processor.number)
+        #    self.active_processors.pop(processor.number)
+        # if len(self.active_processors) == 0:
 

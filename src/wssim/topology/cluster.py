@@ -9,7 +9,8 @@ class Topology:
     """
     Store all topology related informations and methods.
     """
-    def __init__(self, processors_number, is_tasks, is_simultaneous,
+
+    def __init__(self, processors_number, is_tasks, is_DAG, is_simultaneous,
                  local_latency=1, remote_latency=None,
                  remote_steal_probability=None):
         self.processors_number = processors_number
@@ -17,6 +18,7 @@ class Topology:
         self.local_granularity = None
         self.is_tasks = is_tasks
         self.is_simultaneous = is_simultaneous
+        self.is_DAG = is_DAG
 
     def distance(self, *processor_numbers):
         """

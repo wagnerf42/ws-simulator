@@ -3,15 +3,16 @@
 Simulation System configuration
 """
 import json
+import wssim
 import argparse
 from math import floor
 from random import seed
 from time import clock
 from wssim.simulator import Simulator
-from wssim.task import Task, init_task_tree, get_work, get_critical_path, display_DAG
-from wssim import activate_logs
+from wssim.task import Task, init_task_tree, compute_depth, display_DAG
+from wssim import activate_logs, set_unit
 from wssim.topology.cluster import Topology
-#from wssim.topology.clusters import Topology
+# from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -31,6 +32,7 @@ def power_range(start, end, step):
         yield current_value
         current_value *= step
 
+
 def add_tasks_to_json(tasks, tasks_data):
     """
     add tasks list to Json file
@@ -40,11 +42,10 @@ def add_tasks_to_json(tasks, tasks_data):
     info["start_time"] = 0
     info["end_time"] = 0
     info["thread_id"] = 0
-    info["children"]=[child.id for child in tasks.children]
-    tasks_data[tasks.id]= info
+    info["children"] = [child.id for child in tasks.children]
+    tasks_data[tasks.id] = info
     for child in tasks.children:
-        add_tasks_to_json(child,tasks_data)
-
+        add_tasks_to_json(child, tasks_data)
 
 
 def main():
@@ -54,7 +55,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="simulate work stealing algorithm")
     parser.add_argument("-rsp", dest="remote_steal_probability",
-                        default=0.5, type=float,\
+                        default=0.5, type=float,
                         help="probability of stealing remotely")
     parser.add_argument('-rspconf', nargs=3, dest="probabilities_config",
                         type=float, help="interval config of \
@@ -77,7 +78,7 @@ def main():
     parser.add_argument("-l", dest="latency",
                         default=5, type=int,
                         help="latency for remote steal")
-    parser.add_argument("-s", dest="seed", type=float,\
+    parser.add_argument("-s", dest="seed", type=float,
                         default=clock(), help="random seed")
     parser.add_argument("-r", dest="runs",
                         default=1, type=int,
@@ -88,8 +89,8 @@ def main():
                         help="activate traces")
     parser.add_argument("-tt", dest="task_threshold", default=[100],
                         nargs='+', type=int, help="threshold for real tasks")
-    parser.add_argument("-lg", dest="local_granularity", default=None, type=int,
-                        help="local stealing granularity")
+    parser.add_argument("-lg", dest="local_granularity", default=None,
+                        type=int, help="local stealing granularity")
     parser.add_argument("-rg", dest="remote_granularity", default=None,
                         type=int, help="remote stealing granularity ")
     parser.add_argument("-f", dest="log_file", default=None)
@@ -97,8 +98,9 @@ def main():
                         help="activate simultaneously steal")
     parser.add_argument("-json_in", dest="json_file_in", default=None)
     parser.add_argument("-json_out", dest="json_file_out", default=None)
-    arguments = parser.parse_args()
+    parser.add_argument("-u", dest="unit", default=100, type=int, help="unit for svg")
 
+    arguments = parser.parse_args()
 
     print("#using seed", arguments.seed)
     seed(arguments.seed)
@@ -106,10 +108,18 @@ def main():
     if arguments.debug:
         activate_logs()
 
+    if arguments.json_file_out is not None:
+        set_unit(arguments.unit)
+
     platform = Topology(arguments.processors, arguments.tasks,
+                        arguments.json_file_in is not None,
                         arguments.is_simultaneous)
+
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
+
+    if arguments.json_file_out:
+        simulator.json_data["threads_number"] = arguments.processors
 
     if not arguments.probabilities_config:
         probabilities = [arguments.remote_steal_probability]
@@ -122,30 +132,28 @@ def main():
         latencies = list(floating_range(*arguments.latencies_config))
 
     if arguments.json_file_in is not None:
-        first_task,work,depth,logs  = init_task_tree(file_name=arguments.json_file_in)
+        first_task, work, depth, logs = init_task_tree(
+                file_name=arguments.json_file_in)
+
         if arguments.json_file_out:
             simulator.json_data["tasks_logs"] = logs["tasks_logs"]
         works = [work]
-        print("# Work:{}, depth:{}, work/p+depth:{}".format(
+        print("#Work:{}, depth:{}, work/p+depth:{}".format(
             work, depth, work/arguments.processors + depth))
     else:
         if not arguments.work_config:
             works = [arguments.work]
         else:
             works = list(power_range(*arguments.work_config))
-    if arguments.json_file_out:
-        simulator.json_data["threads_number"] = arguments.processors
+
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
-    \twork\ttaskThreshold\tlGranularity\trGranularity\tIDATAT\tEDATAT\tW0\tW1")
+    \twork\tdepth\ttaskThreshold\tlGranularity\trGranularity\tIDATAT\tEDATAT\tW0\tW1")
 
     for work in works:
         for threshold in arguments.task_threshold:
-           # if arguments.json_file_in is None and arguments.tasks:
-           #     first_task = init_task_tree(total_work=work, threshold=threshold)
-
             for probability in probabilities:
                 arguments.probability = probability
                 simulator.topology.remote_steal_probability = probability
@@ -160,33 +168,34 @@ def main():
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
                         if arguments.tasks or arguments.json_file_in is not None:
+
                             if arguments.json_file_in is not None:
-                                print("read file")
                                 first_task, work, depth, logs = init_task_tree(file_name=arguments.json_file_in)
                                 if arguments.json_file_out:
                                     simulator.json_data["tasks_logs"] = logs["tasks_logs"]
                             else:
                                 first_task = init_task_tree(work, threshold)
+                                depth = threshold
                                 if arguments.json_file_out:
                                     tasks_data = dict()
                                     add_tasks_to_json(first_task, tasks_data)
                                     simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
-
                             simulator.reset(work, first_task)
                         else:
                             simulator.reset(work, Task(work, []))
-                        #print("1> ",simulator.json_data["tasks_logs"][0]["children"])
-                        print("run...")
+                            depth = 0
+
                         simulator.run()
                         if arguments.json_file_out:
-                            simulator.json_data["duration"] = simulator.time * 10
+                            simulator.json_data["duration"] = simulator.time * wssim.UNIT
+                            print("UNIT :", wssim.UNIT )
                             simulator.json_data["tasks_number"] = len(simulator.json_data["tasks_logs"])
                             with open(arguments.json_file_out , 'w') as outfile:
                                 json.dump( simulator.json_data, outfile, indent=2)
 
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -196,13 +205,14 @@ def main():
                                   simulator.time,
                                   arguments.processors,
                                   work,
+                                  depth,
                                   threshold,
                                   arguments.local_granularity,
                                   arguments.remote_granularity,
                                   simulator.steal_info["WI"],
                                   simulator.steal_info["WE"],
                                   simulator.steal_info["W0"],
-                                  simulator.steal_info["W1"]
+                                  simulator.steal_info["W1"],
                                   #simulator.steal_info["beginning"]
                               ))
 

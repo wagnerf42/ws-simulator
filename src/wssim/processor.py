@@ -3,6 +3,7 @@
 the processor module provides a Processor class
 holding processors states for the simulation.
 """
+import wssim
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
 
@@ -70,7 +71,7 @@ class Processor:
         if self.tasks:
             return self.tasks.popleft()
         elif self.current_task:
-            if not self.current_task.is_DAG:
+            if not self.simulator.topology.is_DAG:
 
                 if self.cluster == stealer.cluster:
                     granularity = self.simulator.topology.local_granularity
@@ -148,14 +149,14 @@ class Processor:
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
-            ready_tasks = self.current_task.end_execute_task()
+            ready_tasks = self.current_task.end_execute_task(self.simulator.topology.is_DAG)
             #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.work, ")" )
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 while self.current_task.work == 0:
-                    self.tasks.extend(self.current_task.end_execute_task())
+                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.topology.is_DAG))
                     assert self.tasks
                     update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                     self.current_task = self.tasks.pop()
@@ -217,7 +218,7 @@ class Processor:
             self.current_task = stolen_task
             #TODO: repetition
             while self.current_task.work == 0:
-                self.tasks.extend(self.current_task.end_execute_task())
+                self.tasks.extend(self.current_task.end_execute_task(self.simulator.topology.is_DAG))
                 assert self.tasks
                 update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 self.current_task = self.tasks.pop()
@@ -251,10 +252,10 @@ def update_tasks_on_json(json_data, task, start_time, processor_number):
     #print("tasks_id", task.id, id(task),  " thread_id:", processor_number, "start_time:", start_time, " end_time:", start_time + task.work )
     #print("id", id(task), "T", task.id, "(", task.work, ")")
     if len(json_data) >= 1:
-        json_data["tasks_logs"][task.id]["id"] = task.id 
+        json_data["tasks_logs"][task.id]["id"] = task.id
         json_data["tasks_logs"][task.id]["thread_id"] = processor_number
-        json_data["tasks_logs"][task.id]["start_time"] = start_time * 10
-        json_data["tasks_logs"][task.id]["end_time"] = ( start_time + task.work ) * 10
+        json_data["tasks_logs"][task.id]["start_time"] = start_time * wssim.UNIT
+        json_data["tasks_logs"][task.id]["end_time"] = ( start_time + task.work ) * wssim.UNIT
 
 
 

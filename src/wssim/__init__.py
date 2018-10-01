@@ -4,6 +4,8 @@ main module for simulator.
 """
 LOGGING = False
 
+UNIT = 100
+
 def activate_logs():
     """
     activate all logs on stdout
@@ -11,3 +13,12 @@ def activate_logs():
     print("activating logs")
     global LOGGING
     LOGGING = True
+
+
+
+def set_unit(unit):
+    """
+    set unit to visualise the svg
+    """
+    global UNIT
+    UNIT = unit

@@ -22,7 +22,6 @@ class Simulator:
         self.remote_granularity = None
         self.is_beginning = True
         self.json_data = dict()
-        print(self.json_data)
 
         if __debug__:
             if self.log_file is not None:

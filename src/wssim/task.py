@@ -16,14 +16,13 @@ class Task:
     childrens : list of dependent tasks
     """
 
-    def __init__(self, work, children, children_id=None, task_id=0, start_time=0  ,is_DAG=False):
+    def __init__(self, work, children, children_id=None, task_id=0, start_time=0):
         self.id = task_id # id of task will be update when we intialise tasks
         self.work = work
         self.children = children
         self.children_id = children_id
         self.start_time = start_time  # at which time is the task started
         self.dependent_tasks_number = 0 # it will be intialised when we initialise tasks
-        self.is_DAG = is_DAG
 
     def total_work(self):
         """
@@ -51,15 +50,12 @@ class Task:
             return current_time + my_share, \
                 Task(other_share, [])
 
-    def end_execute_task(self):
+    def end_execute_task(self, is_DAG):
         """
         return all children tasks
         """
-       # print(" End of execution of : ", self.id ,"(",self.total_work(),")")
-        #print("number of children id: ", self.children_id)
-        if self.is_DAG:
+        if is_DAG:
             ready_children = []
-            #print("number of children : ", len(self.children))
             # reversed because next task to execute should be pushed last
             for child in reversed(self.children):
                 child.update_dependent_task()
@@ -186,7 +182,7 @@ def read_task_tree_from_json(file_name):
         current_task = Task(
             task["end_time"]-task["start_time"],
             [], children_id=task["children"], task_id=task_index,
-            start_time=task["start_time"],  is_DAG=True)
+            start_time=task["start_time"])
         tasks.append(current_task)
 
     work = compute_work(tasks)

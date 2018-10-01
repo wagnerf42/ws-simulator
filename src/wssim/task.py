@@ -60,7 +60,8 @@ class Task:
         if self.is_DAG:
             ready_children = []
             #print("number of children : ", len(self.children))
-            for child in self.children:
+            # reversed because next task to execute should be pushed last
+            for child in reversed(self.children):
                 child.update_dependent_task()
                 if child.dependent_tasks_number == 0:
                     ready_children.append(child)
@@ -181,11 +182,11 @@ def read_task_tree_from_json(file_name):
     #    )
     #    for (i, l) in enumerate(logs) ]
 
-    for task_indix in range(len(logs["tasks_logs"] )):
+    for task_index, task in enumerate(logs["tasks_logs"]):
         current_task = Task(
-            logs["tasks_logs"][task_indix]["end_time"]-logs["tasks_logs"][task_indix]["start_time"],
-            [], children_id=logs["tasks_logs"][task_indix]["children"], task_id=task_indix,
-            start_time=logs["tasks_logs"][task_indix]["start_time"],  is_DAG=True)
+            task["end_time"]-task["start_time"],
+            [], children_id=task["children"], task_id=task_index,
+            start_time=task["start_time"],  is_DAG=True)
         tasks.append(current_task)
 
     work = compute_work(tasks)

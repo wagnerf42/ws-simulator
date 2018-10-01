@@ -87,8 +87,8 @@ class DAG_task(Task):
         """
         return all children tasks
         """
-        if self.child:
-            return self.children
+        if self.children:
+            return reversed(self.children)
         else:
             ready_children = []
             # reversed because next task to execute should be pushed last
@@ -119,7 +119,7 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
         #if total_work//2 < threshold:
         if total_work <= threshold:
            # print("T", task_id )
-            return DAG_task(total_work, [], task_id)
+            return DAG_task(total_work, [], [], task_id)
         else:
            # print("T", task_id , " -> T",(task_id*2 + 1) , " , T", (task_id*2 + 2))
             if (total_work//2 <= threshold):

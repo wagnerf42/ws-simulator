@@ -72,21 +72,19 @@ class Processor:
         if self.tasks:
             return self.tasks.popleft()
         elif self.current_task:
-            if type(self.current_task) is Divisible_load_task: 
 
-                if self.cluster == stealer.cluster:
-                    granularity = self.simulator.topology.local_granularity
-                else:
-                    granularity = self.simulator.topology.remote_granularity
+            if self.cluster == stealer.cluster:
+                granularity = self.simulator.topology.local_granularity
+            else:
+                granularity = self.simulator.topology.remote_granularity
 
-                splitting_result = \
+            splitting_result = \
                     self.current_task.split_work(self.current_time, granularity)
 
-                if splitting_result:
-                    idle_time, created_task = splitting_result
-                    self.simulator.add_event(
-                        IdleEvent(idle_time, self))
-                    return created_task
+            if splitting_result:
+                idle_time, created_task = splitting_result
+                self.simulator.add_event(IdleEvent(idle_time, self))
+                return created_task
 
     def answer_steal_request(self, stealer):
         """

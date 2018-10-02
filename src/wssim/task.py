@@ -62,18 +62,21 @@ class Divisible_load_task(Task):
         """
         return []
 
+
 class DAG_task(Task):
     """
     class for divisible load tasks
     """
 
-    def __init__(self, work, children, children_id, task_id, start_time=0):
+    def __init__(self, work, children, children_id, task_id, start_time=0,
+            dependent_tasks_number=0):
+
         super().__init__(task_id, work, start_time)
         self.children = children
         self.children_id = children_id
         self.start_time = start_time
 #                 at which time is the task started
-        self.dependent_tasks_number = 0
+        self.dependent_tasks_number = dependent_tasks_number
 #                 it will be intialised when we initialise tasks
 
     def total_work(self):
@@ -83,29 +86,32 @@ class DAG_task(Task):
 #       return sum(child.total_work() for child in self.children)
         return self.work
 
+    def split_work(self, current_time, granularity):
+        """
+        unsplited tasks, return None
+        """
+        return None
+
     def end_execute_task(self):
         """
         return all children tasks
         """
-        if self.children:
-            return reversed(self.children)
-        else:
-            ready_children = []
-            # reversed because next task to execute should be pushed last
-            for child in reversed(self.children):
-                child.update_dependent_task()
-                if child.dependent_tasks_number == 0:
-                    ready_children.append(child)
-            # print("ready_children : ", ready_children)
-            return ready_children
+        ready_children = []
+        # reversed because next task to execute should be pushed last
+        for child in reversed(self.children):
+            child.update_dependent_task()
+            if child.dependent_tasks_number == 0:
+                ready_children.append(child)
+        # print("ready_children : ", ready_children)
+        return ready_children
 
     def update_dependent_task(self):
-       """
-       decrease the number of dependents task when it's finished
-       When the number of dependent tasks is 0, we return the tasks with true.
-       """
+        """
+        Decrease the number of dependents task when it's finished
+        When the number of dependent tasks is 0, we return the tasks with true.
+        """
 
-       self.dependent_tasks_number -= 1
+        self.dependent_tasks_number -= 1
 
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
@@ -119,19 +125,19 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
         #if total_work//2 < threshold:
         if total_work <= threshold:
            # print("T", task_id )
-            return DAG_task(total_work, [], [], task_id)
+            return DAG_task(total_work, [], [], task_id, dependent_tasks_number=1)
         else:
            # print("T", task_id , " -> T",(task_id*2 + 1) , " , T", (task_id*2 + 2))
             if (total_work//2 <= threshold):
                 return DAG_task(0, [
                     init_task_tree(total_work=threshold  , threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-threshold, threshold=threshold, task_id=(task_id*2 + 2))
-                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id)
+                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id, dependent_tasks_number=1 )
             else:
                 return DAG_task(0, [
                     init_task_tree(total_work=total_work//2, threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-total_work//2, threshold=threshold, task_id=(task_id*2 +2))
-                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id)
+                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id, dependent_tasks_number=1)
 
 
 CACHE = dict()

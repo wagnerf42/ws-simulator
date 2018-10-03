@@ -8,7 +8,7 @@ import argparse
 from math import floor
 from random import seed
 from time import clock
-from wssim.task import DAG_task, Divisible_load_task
+from wssim.task import DAG_task, Divisible_load_task, adaptative_task
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree, compute_depth, display_DAG
 from wssim import activate_logs, set_unit
@@ -182,7 +182,8 @@ def main():
                                     simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
                             simulator.reset(work, first_task)
                         else:
-                            simulator.reset(work, Divisible_load_task(work))
+                            #simulator.reset(work, Divisible_load_task(work))
+                            simulator.reset(work, adaptative_task(work))
                             depth = 0
 
                         simulator.run()

@@ -6,7 +6,7 @@ holding processors states for the simulation.
 import wssim
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-from wssim.task import DAG_task, Divisible_load_task
+from wssim.task import DAG_task, Divisible_load_task, adaptative_task
 
 class Processor:
     """
@@ -79,10 +79,16 @@ class Processor:
                 granularity = self.simulator.topology.remote_granularity
 
             splitting_result = \
-                    self.current_task.split_work(self.current_time, granularity)
+                    self.current_task.split_work(
+                            self.current_time,
+                            granularity,
+                            json_data=self.simulator.json_data
+                            )
 
             if splitting_result:
-                idle_time, created_task = splitting_result
+                idle_time, created_task, reduce_work = splitting_result
+                self.simulator.total_work += reduce_work
+                print("add reduce_work:", reduce_work )
                 self.simulator.add_event(IdleEvent(idle_time, self))
                 return created_task
 
@@ -154,6 +160,7 @@ class Processor:
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
+                print("Poped tasks : ", self.current_task.id, "= ", self.current_task.work)
                 while self.current_task.work == 0:
                     self.tasks.extend(self.current_task.end_execute_task())
                     assert self.tasks
@@ -248,13 +255,29 @@ def update_tasks_on_json(json_data, task, start_time, processor_number):
     update tasks info on json file direct
     """
 
-    #print("tasks_id", task.id, id(task),  " thread_id:", processor_number, "start_time:", start_time, " end_time:", start_time + task.work )
-    #print("id", id(task), "T", task.id, "(", task.work, ")")
+#    print("id", id(task), "T", task.id, "(", task.work, ")")
     if len(json_data) >= 1:
-        json_data["tasks_logs"][task.id]["id"] = task.id
-        json_data["tasks_logs"][task.id]["thread_id"] = processor_number
-        json_data["tasks_logs"][task.id]["start_time"] = start_time * wssim.UNIT
-        json_data["tasks_logs"][task.id]["end_time"] = ( start_time + task.work ) * wssim.UNIT
+        if len(json_data.keys()) > 1:
+            print("1")
+            #[print(t) for t in json_data["tasks_logs"]]
+            assert json_data["tasks_logs"][task.id]
+            json_data["tasks_logs"][task.id]["id"] = task.id
+            json_data["tasks_logs"][task.id]["thread_id"] = processor_number
+            json_data["tasks_logs"][task.id]["start_time"] = start_time * wssim.UNIT
+            json_data["tasks_logs"][task.id]["end_time"] = ( start_time + task.work ) * wssim.UNIT
+            print("update: ",  json_data["tasks_logs"][task.id])
+        else:
+            print("2")
+            info = dict()
+            info["id"] = task.id
+            info["start_time"] = start_time * wssim.UNIT
+            info["end_time"] = ( start_time + task.work ) * wssim.UNIT
+            info["thread_id"] = processor_number
+            info["children"] = [child.id for child in task.children]
+            print(info)
+            json_data["tasks_logs"] = [info]
+
+
 
 
 

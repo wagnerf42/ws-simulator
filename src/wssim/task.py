@@ -26,6 +26,49 @@ class Task:
         """
         return (finish_time - self.start_time) * processor_speed == self.work
 
+    def update_json_data(self, json_data, time=0, processor_number=0):
+        """
+        update_json_data with the current tasks
+        if the task does't exist, insert it
+        else update the information
+        """
+
+        if "tasks_logs" in json_data.keys():
+           # assert json_data["tasks_logs"][self.id]
+            if len(json_data["tasks_logs"]) > self.id:
+                json_data["tasks_logs"][self.id]["id"] = self.id
+                json_data["tasks_logs"][self.id]["thread_id"] = processor_number
+                json_data["tasks_logs"][self.id]["end_time"] = time * wssim.UNIT
+                json_data["tasks_logs"][self.id]["start_time"] = ( time - self.work ) * wssim.UNIT # besoin speed
+                print("-> time: ", time, "update: ", json_data["tasks_logs"][self.id]["start_time"] )
+            else:
+                info = dict()
+                info["id"] = self.id
+                info["start_time"] = 0
+                info["end_time"] = 0
+                info["thread_id"] = 0
+                info["children"] = [child.id for child in self.children]
+
+                print("-> insert: T", self.id)
+                print(json_data)
+                json_data["tasks_logs"].insert(self.id, info)
+                print("-> added: ", time, "add: ", json_data["tasks_logs"])
+        else:
+            info = dict()
+            info["id"] = self.id
+            info["start_time"] = 0
+            info["end_time"] = 0
+            info["thread_id"] = processor_number
+            info["children"] = [child.id for child in self.children]
+            json_data["tasks_logs"] = [info]
+            #print("First: ", time, "update: ",  json_data["tasks_logs"][self.id])
+
+        # deja existe
+
+
+
+        # insertion
+
 
 class Divisible_load_task(Task):
     """
@@ -57,10 +100,11 @@ class Divisible_load_task(Task):
             return current_time + my_share, \
                     Divisible_load_task(other_share), 0
 
-    def end_execute_task(self):
+    def end_execute_task(self, json_data, current_time, processor_number):
         """
         return empty list because Divisible load task does't have childre
         """
+        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
         return []
 
 
@@ -93,11 +137,12 @@ class DAG_task(Task):
         """
         return None
 
-    def end_execute_task(self):
+    def end_execute_task(self, json_data, current_time, processor_number):
         """
         return all children tasks
         """
         ready_children = []
+        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
         # reversed because next task to execute should be pushed last
         print("End of : T",self.id, "= ", self.work)
         for child in reversed(self.children):
@@ -188,8 +233,12 @@ class adaptative_task(Task):
         self.children_id = [left_child.id]
 
 
-        if len(json_data) >= 1:
-            add_tasks_to_json([left_child, right_child, waiting_task, reduce_task] , json_data)
+        if "tasks_logs" in json_data.keys():
+            left_child.update_json_data(json_data)
+            waiting_task.update_json_data(json_data)
+            right_child.update_json_data(json_data)
+            reduce_task.update_json_data(json_data)
+
             json_data["tasks_logs"][self.id]["children"] = [left_child.id, waiting_task.id]
             #json_data["tasks_logs"][self.id]["end_time"] = (json_data["tasks_logs"][self.id]["start_time"] + self.work ) * wssim.UNIT
             print("Updated", json_data["tasks_logs"][self.id])
@@ -197,11 +246,12 @@ class adaptative_task(Task):
 
         return current_time + waiting_time, waiting_task, reduce_work+waiting_time
 
-    def end_execute_task(self):
+    def end_execute_task(self, json_data, current_time, processor_number):
         """
         return all children tasks
         """
         print("End of : T",self.id, "= ", self.work)
+        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
         ready_children = []
         # reversed because next task to execute should be pushed last
         for child in reversed(self.children):
@@ -237,13 +287,7 @@ def add_tasks_to_json(tasks, json_data):
     """
 #   [print(task.id) for task in tasks]
     for task in tasks:
-        info = dict()
-        info["id"] = task.id
-        info["start_time"] = 0
-        info["end_time"] = 0
-        info["thread_id"] = 0
-        info["children"] = [child.id for child in task.children]
-        json_data["tasks_logs"].insert(task.id, info)
+        task.update_json_data(json_data)
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """

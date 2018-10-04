@@ -41,7 +41,7 @@ class Processor:
             self.current_task = first_task
             self.current_task.start_time = 0
             self.simulator.steal_info["W0"] = self.current_task.total_work()
-            insert_tasks_on_json(self.simulator.json_data, self.current_task, 0, self.number)
+            self.current_task.update_json_data(self.simulator.json_data, 0, self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.work//self.speed, self))
         else:
@@ -154,18 +154,18 @@ class Processor:
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
-            ready_tasks = self.current_task.end_execute_task()
+            ready_tasks = self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number)
             #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.work, ")" )
-            update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
+            #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 print("Poped tasks : ", self.current_task.id, "= ", self.current_task.work)
                 while self.current_task.work == 0:
-                    self.tasks.extend(self.current_task.end_execute_task())
+                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number))
                     assert self.tasks
-                    update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
+                    #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                     self.current_task = self.tasks.pop()
 
                 if self.cluster == 0:
@@ -226,9 +226,9 @@ class Processor:
             self.current_task = stolen_task
             #TODO: repetition
             while self.current_task.work == 0:
-                self.tasks.extend(self.current_task.end_execute_task())
+                self.tasks.extend(self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number))
                 assert self.tasks
-                update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
+                #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 self.current_task = self.tasks.pop()
             assert self.current_task.work
             #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
@@ -252,35 +252,6 @@ class Processor:
 
 
 
-def update_tasks_on_json(json_data, task, end_time, processor_number):
-    """
-    update tasks info on json file direct
-    """
-
-#    print("id", id(task), "T", task.id, "(", task.work, ")")
-    if len(json_data) >= 1:
-        print("1")
-        #[print(t) for t in json_data["tasks_logs"]]
-        assert json_data["tasks_logs"][task.id]
-        json_data["tasks_logs"][task.id]["id"] = task.id
-        json_data["tasks_logs"][task.id]["thread_id"] = processor_number
-        json_data["tasks_logs"][task.id]["end_time"] = end_time * wssim.UNIT
-        json_data["tasks_logs"][task.id]["start_time"] = ( end_time - task.work ) * wssim.UNIT
-        print("time: ", end_time, "update: ",  json_data["tasks_logs"][task.id])
-
-
-def insert_tasks_on_json(json_data, task, start_time, processor_number):
-    """
-    insert the first task on the json if the json is idle and active
-    """
-    if len(json_data.keys()) <= 1:
-        info = dict()
-        info["id"] = task.id
-        info["start_time"] = start_time * wssim.UNIT
-        info["end_time"] = ( start_time + task.work ) * wssim.UNIT
-        info["thread_id"] = processor_number
-        info["children"] = [child.id for child in task.children]
-        json_data["tasks_logs"] = [info]
 
 
 

@@ -191,8 +191,8 @@ class adaptative_task(Task):
         if len(json_data) >= 1:
             add_tasks_to_json([left_child, right_child, waiting_task, reduce_task] , json_data)
             json_data["tasks_logs"][self.id]["children"] = [left_child.id, waiting_task.id]
-            json_data["tasks_logs"][self.id]["end_time"] = (json_data["tasks_logs"][self.id]["start_time"] + self.work) * wssim.UNIT
-            #print("Updated", json_data["tasks_logs"][self.id])
+            #json_data["tasks_logs"][self.id]["end_time"] = (json_data["tasks_logs"][self.id]["start_time"] + self.work ) * wssim.UNIT
+            print("Updated", json_data["tasks_logs"][self.id])
 
 
         return current_time + waiting_time, waiting_task, reduce_work+waiting_time

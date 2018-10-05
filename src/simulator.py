@@ -86,11 +86,13 @@ def main():
                         help="number of runs to execute")
     parser.add_argument("-tasks", dest="tasks", action="store_true",
                         help="use tree tasks")
+    parser.add_argument("-adapt", dest="adaptative", action="store_true",
+                        help="use adaptative tasks")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
     parser.add_argument("-tt", dest="task_threshold", default=[100],
                         nargs='+', type=int, help="threshold for real tasks")
-    parser.add_argument("-lg", dest="local_granularity", default=None,
+    parser.add_argument("-lg", dest="local_granularity", default=2,
                         type=int, help="local stealing granularity")
     parser.add_argument("-rg", dest="remote_granularity", default=None,
                         type=int, help="remote stealing granularity ")
@@ -159,8 +161,8 @@ def main():
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    arguments.local_granularity = 2
-                    arguments.remote_granularity = 2*latency
+                    #arguments.local_granularity = 2
+                    #arguments.remote_granularity = 2*latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold
                     simulator.topology.update_granularity(
@@ -181,9 +183,11 @@ def main():
                                     add_tasks_to_json(first_task, tasks_data)
                                     simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
                             simulator.reset(work, first_task)
-                        else:
-                            #simulator.reset(work, Divisible_load_task(work))
+                        elif arguments.adaptative:
                             simulator.reset(work, adaptative_task(work))
+                            depth = 0
+                        else:
+                            simulator.reset(work, Divisible_load_task(work))
                             depth = 0
 
                         simulator.run()

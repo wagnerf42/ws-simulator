@@ -73,6 +73,18 @@ class Divisible_load_task(Task):
         """
         return self.work
 
+    def update_json_data(self, json_data, time=0, processor_number=0):
+        """
+        """
+        info = dict()
+        info["id"] = self.id
+        info["start_time"] = 0
+        info["end_time"] = 0
+        info["thread_id"] = processor_number
+        info["children"] = []
+        json_data["tasks_logs"] = [info]
+
+
     def split_work(self, current_time, granularity, json_data=None):
         """
         cut task in two if we have enough remaining work
@@ -236,7 +248,7 @@ class adaptative_task(Task):
         return left_child, right_child, reduce_task
 
 
-    def split_work(self, current_time, granularity, json_data=None, with_waiting_time=False):
+    def split_work(self, current_time, granularity, json_data=None, with_waiting_time=True):
         """
         unsplited tasks, return None
         """
@@ -246,10 +258,6 @@ class adaptative_task(Task):
         remaining_work = self.work - computed_work - waiting_time
         my_share = remaining_work//2
 
-        print("split of T:", self.id, " with w:", self.work, " that started at time:", self.start_time, " at time:" , current_time )
-        print("waiting work: ", waiting_time, "remaining_work", remaining_work )
-        print("current_time: ", current_time, "self.start_time", self.start_time )
-        print("work: ", self.work, "self.start_time", self.start_time )
         assert remaining_work + waiting_time >= 0
 
         if my_share < granularity:
@@ -457,5 +465,5 @@ def get_reduce_work(left_child, right_child):
     """
     methode to compute the reduce work based on the work of the two dependet tasks
     """
-    return ( left_child.work + right_child.work )//3
+    return ( left_child.work + right_child.work )//8
 

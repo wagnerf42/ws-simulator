@@ -41,7 +41,7 @@ class Processor:
             self.current_task = first_task
             self.current_task.start_time = 0
             self.simulator.steal_info["W0"] = self.current_task.total_work()
-            self.current_task.update_json_data(self.simulator.json_data, 0, self.number)
+            self.current_task.update_json_data(self.simulator.json_data, time=0, processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.work//self.speed, self))
         else:
@@ -88,7 +88,6 @@ class Processor:
             if splitting_result:
                 idle_time, created_task, reduce_work = splitting_result
                 self.simulator.total_work += reduce_work
-                print("add reduce_work:", reduce_work )
                 self.simulator.add_event(IdleEvent(idle_time, self))
                 return created_task
 
@@ -161,7 +160,6 @@ class Processor:
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
-                print("Poped tasks : ", self.current_task.id, "= ", self.current_task.work)
                 while self.current_task.work == 0:
                     self.tasks.extend(self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number))
                     assert self.tasks
@@ -217,7 +215,6 @@ class Processor:
         we receive an answer from steal request.
         """
         self.current_time = self.simulator.time
-        #print("--",self.tasks)
         #assert not self.tasks
         if stolen_task is None:
             # still no work, steal again

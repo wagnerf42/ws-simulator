@@ -13,7 +13,7 @@ from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree, compute_depth, display_DAG
 from wssim import activate_logs, set_unit
 from wssim.topology.cluster import Topology
-# from wssim.topology.clusters import Topology
+#from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -179,8 +179,13 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptative:
-                            # simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(left_work+right_work, children, task_id, dependent_tasks_number=dependent_tasks_number)))
-                            simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(1, children, task_id, dependent_tasks_number=dependent_tasks_number), children, task_id, dependent_tasks_number=dependent_tasks_number)))
+                            simulator.reset(work,
+                                    Adaptive_task(
+                                        work,
+                                        lambda left_work, right_work:DAG_task(left_work+right_work)
+                                                )
+                                           )
+                            #simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(1, children, task_id, dependent_tasks_number=dependent_tasks_number), children, task_id, dependent_tasks_number=dependent_tasks_number)))
                             depth = 0
                         else:
                             simulator.reset(work, Divisible_load_task(work))

@@ -14,13 +14,14 @@ class Task:
     work : work of tasks, task is virtual if work=0
     childrens : list of dependent tasks
     """
-
+    tasks_number = 0
     remaining_tasks = 0
     def __init__(self, task_id, work, start_time):
         self.id = task_id  # id of task will be update when we intialise tasks
         self.work = work
         self.start_time = start_time
         Task.remaining_tasks += 1
+        Task.tasks_number += 1
 
     def finishes_at(self, finish_time, processor_speed):
         """
@@ -63,7 +64,8 @@ class Divisible_load_task(Task):
     """
 
     def __init__(self, work, start_time=0, task_id=0):
-        super().__init__(task_id, work, start_time)
+        super().__init__(Task.tasks_number, work, start_time)
+        self.children = []
 
     def total_work(self):
         """
@@ -84,14 +86,19 @@ class Divisible_load_task(Task):
         if my_share > granularity:
             self.work = computed_work + my_share
             other_share = remaining_work - my_share
-            return current_time + my_share, \
-                    Divisible_load_task(other_share), 0
+
+            new_child = Divisible_load_task(other_share)
+            new_child.update_graph_data(graph)
+
+            graph[self.id]["children"].append(new_child.id)
+
+            return current_time + my_share, new_child, 0
 
     def end_execute_task(self, graph, current_time, processor_number):
         """
         return empty list because Divisible load task does't have childre
         """
-        super().end_execute_task(graph, current_time, processor_number  )
+        super().end_execute_task(graph, current_time, processor_number)
         return []
 
 
@@ -100,12 +107,11 @@ class DAG_task(Task):
     class for divisible load tasks
     """
 
-    def __init__(self, work, children, children_id, task_id, start_time=0,
+    def __init__(self, work, children, task_id, start_time=0,
                  dependent_tasks_number=0):
 
         super().__init__(task_id, work, start_time)
         self.children = children
-        self.children_id = children_id
         self.start_time = start_time
 #                 at which time is the task started
         self.dependent_tasks_number = dependent_tasks_number
@@ -151,12 +157,11 @@ class Adaptive_task(Task):
     when the owner processor receives a steal
     """
 
-    def __init__(self, work, reduction_tasks_factory, children=[], children_id=[], task_id=0, start_time=0,
+    def __init__(self, work, reduction_tasks_factory, children=[], task_id=0, start_time=0,
             dependent_tasks_number=0):
 
         super().__init__(task_id, work, start_time)
         self.children = children
-        self.children_id = children_id
         self.start_time = start_time
 #                 at which time is the task started
         self.dependent_tasks_number = dependent_tasks_number
@@ -196,17 +201,15 @@ class Adaptive_task(Task):
                                [right_child.id], task_id=(last_id+ 2),
                                 dependent_tasks_number=0)
 
-        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, self.children_id, (last_id+4), 2)
+        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, (last_id+4), 2)
         # reduce_work = get_reduce_work(left_child, right_child)
-        # reduce_task = DAG_task(reduce_work, self.children, self.children_id,
+        # reduce_task = DAG_task(reduce_work, self.children,
         #                        task_id=(last_id + 4),
         #                        dependent_tasks_number=2)
 
         left_child.children = [reduce_task]
-        left_child.children_id = [reduce_task.id]
 
         right_child.children = [reduce_task]
-        right_child.children_id = [reduce_task.id]
 
         # update current_tasks
         return left_child, right_child, waiting_task, reduce_task
@@ -225,17 +228,15 @@ class Adaptive_task(Task):
                                       task_id=(last_id + 2),
                                       dependent_tasks_number=1)
 
-        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, self.children_id, (last_id+3), 2)
+        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, (last_id+3), 2)
         # reduce_work = get_reduce_work(left_child, right_child)
-        # reduce_task = DAG_task(reduce_work, self.children, self.children_id,
+        # reduce_task = DAG_task(reduce_work, self.children,
         #                        task_id=(last_id + 3),
         #                        dependent_tasks_number=2)
 
         left_child.children = [reduce_task]
-        left_child.children_id = [reduce_task.id]
 
         right_child.children = [reduce_task]
-        right_child.children_id = [reduce_task.id]
 
         # update current_tasks
         return left_child, right_child, reduce_task
@@ -270,7 +271,6 @@ class Adaptive_task(Task):
 
             self.work = computed_work + waiting_time
             self.children = [l_child]
-            self.children_id = [l_child.id]
             return current_time + waiting_time, waiting_task,\
                     waiting_time + reduce_task.work
         else:
@@ -287,7 +287,6 @@ class Adaptive_task(Task):
 
             self.work = computed_work + waiting_time
             self.children = [l_child]
-            self.children_id = [l_child.id]
             return current_time, r_child, reduce_task.work
 
     def end_execute_task(self, graph, current_time, processor_number):
@@ -336,18 +335,18 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     else:
         #if total_work//2 < threshold:
         if total_work <= threshold:
-            return DAG_task(total_work, [], [], task_id, dependent_tasks_number=1)
+            return DAG_task(total_work, [], task_id, dependent_tasks_number=1)
         else:
             if (total_work//2 <= threshold):
                 return DAG_task(0, [
                     init_task_tree(total_work=threshold  , threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-threshold, threshold=threshold, task_id=(task_id*2 + 2))
-                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id, dependent_tasks_number=1 )
+                    ], task_id=task_id, dependent_tasks_number=1 )
             else:
                 return DAG_task(0, [
                     init_task_tree(total_work=total_work//2, threshold=threshold, task_id=(task_id*2 + 1)),
                     init_task_tree(total_work=total_work-total_work//2, threshold=threshold, task_id=(task_id*2 +2))
-                    ], [(task_id*2 + 1), (task_id*2 + 2)], task_id=task_id, dependent_tasks_number=1)
+                    ], task_id=task_id, dependent_tasks_number=1)
 
 
 CACHE = dict()
@@ -381,6 +380,10 @@ def update_dependencies(tasks):
             task.children.append(tasks[children_id])
     return tasks
 
+#for children_id in task.children_id:
+#            tasks[children_id].dependent_tasks_number = tasks[children_id].dependent_tasks_number + 1
+#            task.children.append(tasks[children_id])
+
 
 
 def read_task_tree_from_json(file_name):
@@ -392,20 +395,13 @@ def read_task_tree_from_json(file_name):
     with open(file_name) as file:
         logs = json.load(file)
 
-    #tasks = [
-    #    Task(
-    #        l["end_time"] - l["start_time"],
-    #        [],
-    #        children_id = l["children"],
-    #        task_id = i
-    #    )
-    #    for (i, l) in enumerate(logs) ]
-
     for task_index, task in enumerate(logs["tasks_logs"]):
         current_task = DAG_task(
             task["end_time"]-task["start_time"],
-            [], task["children"], task_index,
+            #[], task["children"], task_index,
+            [], task_index,
             start_time=task["start_time"])
+        current_task.children_id = task["children"]
         tasks.append(current_task)
 
     work = compute_work(tasks)
@@ -416,7 +412,7 @@ def read_task_tree_from_json(file_name):
 
 
 def display_DAG(DAG, level="", level_num=0):
-    DAG.display()
+    print("T:",DAG.id, "(", DAG.work ,")")
     level_num = level_num + 1
     level = level + "--"
     print(level_num, level, end='')
@@ -437,7 +433,7 @@ def compute_depth(tasks):
     for task_id in tasks_ids:
         task = tasks[task_id]
         if task.children:
-            depths[task_id] = task.total_work() + max(depths[c] for c in task.children_id)
+            depths[task_id] = task.total_work() + max(depths[c.id] for c in task.children)
         else:
             depths[task_id] = task.total_work()
 

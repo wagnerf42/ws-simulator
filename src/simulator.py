@@ -131,15 +131,8 @@ def main():
     else:
         latencies = list(floating_range(*arguments.latencies_config))
 
-    if arguments.json_file_in is not None:
-        first_task, work, depth, logs = init_task_tree(
-                file_name=arguments.json_file_in)
-
-        if arguments.json_file_out:
-            simulator.graph = logs["tasks_logs"]
-        works = [work]
-        print("#Work:{}, depth:{}, work/p+depth:{}".format(
-            work, depth, work/arguments.processors + depth))
+    if arguments.json_file_in:
+        works = [0]
     else:
         simulator.graph = []
         if not arguments.work_config:

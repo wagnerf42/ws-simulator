@@ -6,7 +6,7 @@ holding processors states for the simulation.
 import wssim
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-from wssim.task import DAG_task, Divisible_load_task, adaptative_task
+from wssim.task import DAG_task, Divisible_load_task, Adaptive_task
 
 class Processor:
     """
@@ -41,7 +41,7 @@ class Processor:
             self.current_task = first_task
             self.current_task.start_time = 0
             self.simulator.steal_info["W0"] = self.current_task.total_work()
-            self.current_task.update_json_data(self.simulator.json_data, time=0, processor_number=self.number)
+            self.current_task.update_graph_data(self.simulator.graph, time=0, processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.work//self.speed, self))
         else:
@@ -82,7 +82,7 @@ class Processor:
                     self.current_task.split_work(
                             self.current_time,
                             granularity,
-                            json_data=self.simulator.json_data
+                            graph=self.simulator.graph
                             )
 
             if splitting_result:
@@ -153,17 +153,15 @@ class Processor:
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
             self.simulator.total_work -= self.current_task.work
-            ready_tasks = self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number)
+            ready_tasks = self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number)
             #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.work, ")" )
-            #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 while self.current_task.work == 0:
-                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number))
+                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number))
                     assert self.tasks
-                    #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                     self.current_task = self.tasks.pop()
 
                 if self.cluster == 0:
@@ -223,12 +221,10 @@ class Processor:
             self.current_task = stolen_task
             #TODO: repetition
             while self.current_task.work == 0:
-                self.tasks.extend(self.current_task.end_execute_task(self.simulator.json_data, self.current_time, self.number))
+                self.tasks.extend(self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number))
                 assert self.tasks
-                #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
                 self.current_task = self.tasks.pop()
             assert self.current_task.work
-            #update_tasks_on_json(self.simulator.json_data, self.current_task, self.current_time, self.number)
             self.simulator.steal_info["W0"] += stolen_task.total_work()
             self.current_task.start_time = self.current_time
             becoming_idle_time = self.current_time + \

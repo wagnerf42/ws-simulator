@@ -8,7 +8,7 @@ import argparse
 from math import floor
 from random import seed
 from time import clock
-from wssim.task import DAG_task, Divisible_load_task, adaptative_task
+from wssim.task import DAG_task, Divisible_load_task, Adaptive_task
 from wssim.simulator import Simulator
 from wssim.task import Task, init_task_tree, compute_depth, display_DAG
 from wssim import activate_logs, set_unit
@@ -34,7 +34,7 @@ def power_range(start, end, step):
         current_value *= step
 
 
-def add_tasks_to_json(tasks, tasks_data):
+def update_graph(tasks, graph):
     """
     add tasks list to Json file
     """
@@ -44,9 +44,9 @@ def add_tasks_to_json(tasks, tasks_data):
     info["end_time"] = 0
     info["thread_id"] = 0
     info["children"] = [child.id for child in tasks.children]
-    tasks_data[tasks.id] = info
+    graph[tasks.id] = info
     for child in tasks.children:
-        add_tasks_to_json(child, tasks_data)
+        update_graph(child, graph)
 
 
 def main():
@@ -101,7 +101,8 @@ def main():
                         help="activate simultaneously steal")
     parser.add_argument("-json_in", dest="json_file_in", default=None)
     parser.add_argument("-json_out", dest="json_file_out", default=None)
-    parser.add_argument("-u", dest="unit", default=100, type=int, help="unit for svg")
+    parser.add_argument("-svg_time_scal", dest="unit", default=100, type=int,
+                        help="unit for svg")
 
     arguments = parser.parse_args()
 
@@ -115,13 +116,10 @@ def main():
         set_unit(arguments.unit)
 
     platform = Topology(arguments.processors,
-            arguments.is_simultaneous)
+                        arguments.is_simultaneous)
 
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
-
-    if arguments.json_file_out:
-        simulator.json_data["threads_number"] = arguments.processors
 
     if not arguments.probabilities_config:
         probabilities = [arguments.remote_steal_probability]
@@ -138,11 +136,12 @@ def main():
                 file_name=arguments.json_file_in)
 
         if arguments.json_file_out:
-            simulator.json_data["tasks_logs"] = logs["tasks_logs"]
+            simulator.graph = logs["tasks_logs"]
         works = [work]
         print("#Work:{}, depth:{}, work/p+depth:{}".format(
             work, depth, work/arguments.processors + depth))
     else:
+        simulator.graph = []
         if not arguments.work_config:
             works = [arguments.work]
         else:
@@ -152,7 +151,8 @@ def main():
         arguments.processors,
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
-    \twork\tdepth\ttaskThreshold\tlGranularity\trGranularity\tIDATAT\tEDATAT\tW0\tW1")
+    \twork\tdepth\ttaskThreshold\tlGranularity\
+    \trGranularity\tIDATAT\tEDATAT\tW0\tW1")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -161,8 +161,8 @@ def main():
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    #arguments.local_granularity = 2
-                    #arguments.remote_granularity = 2*latency
+                    # arguments.local_granularity = 2
+                    # arguments.remote_granularity = 2*latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold
                     simulator.topology.update_granularity(
@@ -174,17 +174,20 @@ def main():
                             if arguments.json_file_in is not None:
                                 first_task, work, depth, logs = init_task_tree(file_name=arguments.json_file_in)
                                 if arguments.json_file_out:
-                                    simulator.json_data["tasks_logs"] = logs["tasks_logs"]
+                                    simulator.graph = logs["tasks_logs"]
                             else:
                                 first_task = init_task_tree(work, threshold)
                                 depth = threshold
                                 if arguments.json_file_out:
                                     tasks_data = dict()
-                                    add_tasks_to_json(first_task, tasks_data)
-                                    simulator.json_data["tasks_logs"] = [v for v in tasks_data.values()]
+                                    update_graph(first_task, tasks_data)
+                                    simulator.graph = [v for v in
+                                                       tasks_data.values()]
+
                             simulator.reset(work, first_task)
                         elif arguments.adaptative:
-                            simulator.reset(work, adaptative_task(work))
+                            # simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: DAG_task(left_work+right_work, children, children_id, task_id, dependent_tasks_number=dependent_tasks_number)))
+                            simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: DAG_task(1, children, children_id, task_id, dependent_tasks_number=dependent_tasks_number), children, children_id, task_id, dependent_tasks_number=dependent_tasks_number)))
                             depth = 0
                         else:
                             simulator.reset(work, Divisible_load_task(work))
@@ -192,21 +195,24 @@ def main():
 
                         simulator.run()
                         if arguments.json_file_out:
-                            simulator.json_data["duration"] = simulator.time * wssim.UNIT
-                            print("UNIT :", wssim.UNIT )
-                            simulator.json_data["tasks_number"] = len(simulator.json_data["tasks_logs"])
-                            with open(arguments.json_file_out , 'w') as outfile:
-                                json.dump( simulator.json_data, outfile, indent=2)
+                            json_data = dict()
+                            json_data["threads_number"] = arguments.processors
+                            json_data["duration"] = simulator.time * wssim.UNIT
+                            json_data["tasks_number"] = len(simulator.graph)
+                            json_data["tasks_logs"] = simulator.graph
 
+                            with open(arguments.json_file_out, 'w') as outfile:
+                                json.dump(json_data,
+                                          outfile, indent=2)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
                               \t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
-                                  #simulator.steal_info["SIWR"],
+                                  # simulator.steal_info["SIWR"],
                                   simulator.steal_info["EWR"],
-                                  #simulator.steal_info["SEWR"],
+                                  # simulator.steal_info["SEWR"],
                                   simulator.time,
                                   arguments.processors,
                                   work,
@@ -218,7 +224,7 @@ def main():
                                   simulator.steal_info["WE"],
                                   simulator.steal_info["W0"],
                                   simulator.steal_info["W1"],
-                                  #simulator.steal_info["beginning"]
+                                  # simulator.steal_info["beginning"]
                               ))
 
 

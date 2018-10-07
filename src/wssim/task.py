@@ -15,10 +15,12 @@ class Task:
     childrens : list of dependent tasks
     """
 
+    remaining_tasks = 0
     def __init__(self, task_id, work, start_time):
         self.id = task_id  # id of task will be update when we intialise tasks
         self.work = work
         self.start_time = start_time
+        Task.remaining_tasks += 1
 
     def finishes_at(self, finish_time, processor_speed):
         """
@@ -26,37 +28,33 @@ class Task:
         """
         return (finish_time - self.start_time) * processor_speed == self.work
 
-    def update_json_data(self, json_data, time=0, processor_number=0):
+    def update_graph_data(self, graph, time=0, processor_number=0):
         """
-        update_json_data with the current tasks
+        update json data with the current tasks
         if the task does't exist, insert it
         else update the information
         """
 
-        if "tasks_logs" in json_data.keys():
-            if get_last_id_from_the_json_data(json_data) >= self.id:
-                json_data["tasks_logs"][self.id]["id"] = self.id
-                json_data["tasks_logs"][self.id]["thread_id"] = processor_number
-                json_data["tasks_logs"][self.id]["end_time"] = time * wssim.UNIT
-                json_data["tasks_logs"][self.id]["start_time"] = (time - self.work) * wssim.UNIT
+        if get_last_id_from_the_json_data(graph) >= self.id:
+            graph[self.id]["id"] = self.id
+            graph[self.id]["thread_id"] = processor_number
+            graph[self.id]["end_time"] = time * wssim.UNIT
+            graph[self.id]["start_time"] = (time - self.work) * wssim.UNIT
                 # besoin speed
-            else:
-                info = dict()
-                info["id"] = self.id
-                info["start_time"] = 0
-                info["end_time"] = 0
-                info["thread_id"] = 0
-                info["children"] = [child.id for child in self.children]
-
-                json_data["tasks_logs"].insert(self.id, info)
         else:
             info = dict()
             info["id"] = self.id
-            info["start_time"] = 0
-            info["end_time"] = 0
-            info["thread_id"] = processor_number
-            info["children"] = [child.id for child in self.children]
-            json_data["tasks_logs"] = [info]
+            if hasattr(self, "children"):
+                info["children"] = [child.id for child in self.children]
+
+            graph.insert(self.id, info)
+
+    def end_execute_task(self, graph, current_time, processor_number):
+        """
+        In all cases, we need to update the task info on the graph
+        """
+        self.update_graph_data(graph, time=current_time, processor_number=processor_number)
+        Task.remaining_tasks -= 1
 
 
 class Divisible_load_task(Task):
@@ -73,19 +71,7 @@ class Divisible_load_task(Task):
         """
         return self.work
 
-    def update_json_data(self, json_data, time=0, processor_number=0):
-        """
-        """
-        info = dict()
-        info["id"] = self.id
-        info["start_time"] = 0
-        info["end_time"] = 0
-        info["thread_id"] = processor_number
-        info["children"] = []
-        json_data["tasks_logs"] = [info]
-
-
-    def split_work(self, current_time, granularity, json_data=None):
+    def split_work(self, current_time, granularity, graph=None):
         """
         cut task in two if we have enough remaining work
         update update the work on the current task
@@ -101,11 +87,11 @@ class Divisible_load_task(Task):
             return current_time + my_share, \
                     Divisible_load_task(other_share), 0
 
-    def end_execute_task(self, json_data, current_time, processor_number):
+    def end_execute_task(self, graph, current_time, processor_number):
         """
         return empty list because Divisible load task does't have childre
         """
-        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
+        super().end_execute_task(graph, current_time, processor_number  )
         return []
 
 
@@ -132,18 +118,18 @@ class DAG_task(Task):
 #       return sum(child.total_work() for child in self.children)
         return self.work
 
-    def split_work(self, current_time, granularit, json_data=None):
+    def split_work(self, current_time, granularit, graph=None):
         """
         unsplited tasks, return None
         """
         return None
 
-    def end_execute_task(self, json_data, current_time, processor_number):
+    def end_execute_task(self, graph, current_time, processor_number):
         """
         return all children tasks
         """
+        super().end_execute_task(graph, current_time, processor_number  )
         ready_children = []
-        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
         # reversed because next task to execute should be pushed last
         for child in reversed(self.children):
             child.update_dependent_task()
@@ -159,13 +145,13 @@ class DAG_task(Task):
         self.dependent_tasks_number -= 1
 
 
-class adaptative_task(Task):
+class Adaptive_task(Task):
     """
     class for the adaptive tasks that could be divided
     when the owner processor receives a steal
     """
 
-    def __init__(self, work, children=[], children_id=[], task_id=0, start_time=0,
+    def __init__(self, work, reduction_tasks_factory, children=[], children_id=[], task_id=0, start_time=0,
             dependent_tasks_number=0):
 
         super().__init__(task_id, work, start_time)
@@ -174,6 +160,7 @@ class adaptative_task(Task):
         self.start_time = start_time
 #                 at which time is the task started
         self.dependent_tasks_number = dependent_tasks_number
+        self.reduction_tasks_factory = reduction_tasks_factory
 #                 it will be intialised when we initialise tasks
 
     def total_work(self):
@@ -192,25 +179,28 @@ class adaptative_task(Task):
         else:
             return 0
 
-    def split_tasks_with_waiting_time(self, left_work, right_work, waiting_time, json_data):
+    def split_tasks_with_waiting_time(self, left_work, right_work, waiting_time, graph):
         """
         """
-        last_id = get_last_id_from_the_json_data(json_data)
+        last_id = get_last_id_from_the_json_data(graph)
 
-        left_child = adaptative_task(left_work,
+        left_child = Adaptive_task(left_work,
+                                     self.reduction_tasks_factory,
                                      task_id=(last_id + 1),
                                      dependent_tasks_number=1)
-        right_child = adaptative_task(right_work,
+        right_child = Adaptive_task(right_work,
+                                      self.reduction_tasks_factory,
                                       task_id=(last_id + 3),
                                       dependent_tasks_number=1)
         waiting_task = DAG_task(waiting_time, [right_child],
                                [right_child.id], task_id=(last_id+ 2),
                                 dependent_tasks_number=0)
 
-        reduce_work = get_reduce_work(left_child, right_child)
-        reduce_task = DAG_task(reduce_work, self.children, self.children_id,
-                               task_id=(last_id + 4),
-                               dependent_tasks_number=2)
+        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, self.children_id, (last_id+4), 2)
+        # reduce_work = get_reduce_work(left_child, right_child)
+        # reduce_task = DAG_task(reduce_work, self.children, self.children_id,
+        #                        task_id=(last_id + 4),
+        #                        dependent_tasks_number=2)
 
         left_child.children = [reduce_task]
         left_child.children_id = [reduce_task.id]
@@ -221,22 +211,25 @@ class adaptative_task(Task):
         # update current_tasks
         return left_child, right_child, waiting_task, reduce_task
 
-    def split_tasks_without_waiting_time(self, left_work, right_work, waiting_time, json_data):
+    def split_tasks_without_waiting_time(self, left_work, right_work, waiting_time, graph):
         """
         """
-        last_id = get_last_id_from_the_json_data(json_data)
+        last_id = get_last_id_from_the_json_data(graph)
 
-        left_child = adaptative_task(left_work,
+        left_child = Adaptive_task(left_work,
+                                     self.reduction_tasks_factory,
                                      task_id=(last_id + 1),
                                      dependent_tasks_number=1)
-        right_child = adaptative_task(right_work,
+        right_child = Adaptive_task(right_work,
+                                      self.reduction_tasks_factory,
                                       task_id=(last_id + 2),
                                       dependent_tasks_number=1)
 
-        reduce_work = get_reduce_work(left_child, right_child)
-        reduce_task = DAG_task(reduce_work, self.children, self.children_id,
-                               task_id=(last_id + 3),
-                               dependent_tasks_number=2)
+        reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, self.children_id, (last_id+3), 2)
+        # reduce_work = get_reduce_work(left_child, right_child)
+        # reduce_task = DAG_task(reduce_work, self.children, self.children_id,
+        #                        task_id=(last_id + 3),
+        #                        dependent_tasks_number=2)
 
         left_child.children = [reduce_task]
         left_child.children_id = [reduce_task.id]
@@ -248,7 +241,7 @@ class adaptative_task(Task):
         return left_child, right_child, reduce_task
 
 
-    def split_work(self, current_time, granularity, json_data=None, with_waiting_time=True):
+    def split_work(self, current_time, granularity, graph=None, with_waiting_time=True):
         """
         unsplited tasks, return None
         """
@@ -269,10 +262,10 @@ class adaptative_task(Task):
                             my_share,
                             remaining_work - my_share,
                             waiting_time,
-                            json_data
+                            graph
                             )
-            add_tasks_to_json([l_child, waiting_task, r_child, reduce_task], json_data)
-            json_data["tasks_logs"][self.id]["children"] = \
+            add_tasks_to_json([l_child, waiting_task, r_child, reduce_task], graph)
+            graph[self.id]["children"] = \
                     [l_child.id, waiting_task.id]
 
             self.work = computed_work + waiting_time
@@ -286,10 +279,10 @@ class adaptative_task(Task):
                             my_share,
                             remaining_work - my_share,
                             waiting_time,
-                            json_data
+                            graph
                             )
-            add_tasks_to_json([l_child, r_child, reduce_task], json_data)
-            json_data["tasks_logs"][self.id]["children"] = \
+            add_tasks_to_json([l_child, r_child, reduce_task], graph)
+            graph[self.id]["children"] = \
                     [l_child.id, r_child.id]
 
             self.work = computed_work + waiting_time
@@ -297,11 +290,11 @@ class adaptative_task(Task):
             self.children_id = [l_child.id]
             return current_time, r_child, reduce_task.work
 
-    def end_execute_task(self, json_data, current_time, processor_number):
+    def end_execute_task(self, graph, current_time, processor_number):
         """
         return all children tasks
         """
-        self.update_json_data(json_data, time=current_time, processor_number=processor_number)
+        super().end_execute_task(graph, current_time, processor_number)
         ready_children = []
         # reversed because next task to execute should be pushed last
         for child in reversed(self.children):
@@ -319,23 +312,19 @@ class adaptative_task(Task):
 
 
 
-def get_last_id_from_the_json_data(json_data):
+def get_last_id_from_the_json_data(graph):
     """
     get the last_id from thr json data
     """
-    if "tasks_logs" in json_data.keys():
-        return len(json_data["tasks_logs"]) - 1
-    else:
-        assert 1==2
-        return 0
+    return len(graph) - 1
 
 
-def add_tasks_to_json(tasks, json_data):
+def add_tasks_to_json(tasks, graph):
     """
     add tasks list to Json file
     """
     for task in tasks:
-        task.update_json_data(json_data)
+        task.update_graph_data(graph)
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """

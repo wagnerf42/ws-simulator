@@ -6,6 +6,7 @@ from heapq import heappush, heappop
 from collections import defaultdict
 from wssim.processor import Processor
 from wssim.logger import Logger
+from wssim.task import Task
 
 
 class Simulator:
@@ -23,7 +24,7 @@ class Simulator:
         self.local_granularity = None
         self.remote_granularity = None
         self.is_beginning = True
-        self.json_data = dict()
+        self.graph = []
 
         if __debug__:
             if self.log_file is not None:
@@ -63,13 +64,11 @@ class Simulator:
         """
         start Simulation of the system
         """
-        step = 0
-        while self.total_work > 0:
+        while Task.remaining_tasks:
+        # while self.total_work > 0:
             event = self.next_event()
             self.time = event.time
             event.execute()
-        #    print("work : " , step , " " ,  self.total_work )
-            step += 1
         if __debug__:
             if self.log_file is not None:
                 self.logger.end_of_logger(clusters_number=2,

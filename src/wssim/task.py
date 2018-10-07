@@ -21,7 +21,7 @@ class Task:
             self.id = task_id  # id of task will be update when we intialise tasks
         else:
             self.id = Task.tasks_number
-        self.work = work
+        self.Work = work
 
         Task.remaining_tasks += 1
         Task.tasks_number += 1
@@ -30,7 +30,7 @@ class Task:
         """
         compute if we finish at given time with given speed
         """
-        return (finish_time - self.start_time) * processor_speed == self.work
+        return (finish_time - self.start_time) * processor_speed == self.get_work()
 
     def update_graph_data(self, graph, time=0, processor_number=0):
         """
@@ -42,7 +42,7 @@ class Task:
             graph[self.id]["id"] = self.id
             graph[self.id]["thread_id"] = processor_number
             graph[self.id]["end_time"] = time * wssim.UNIT
-            graph[self.id]["start_time"] = (time - self.work) * wssim.UNIT
+            graph[self.id]["start_time"] = (time - self.get_work()) * wssim.UNIT
                 # besoin speed
         else:
             info = dict()
@@ -69,11 +69,11 @@ class Divisible_load_task(Task):
         super().__init__(work)
         self.children = []
 
-    def total_work(self):
+    def get_work(self):
         """
         returns work
         """
-        return self.work
+        return self.Work
 
     def split_work(self, current_time, granularity, graph=None):
         """
@@ -82,11 +82,11 @@ class Divisible_load_task(Task):
         return new Divisible load task
         """
         computed_work = current_time - self.start_time
-        remaining_work = self.work - computed_work
+        remaining_work = self.get_work() - computed_work
         assert remaining_work >= 0
         my_share = remaining_work//2
         if my_share > granularity:
-            self.work = computed_work + my_share
+            self.Work = computed_work + my_share
             other_share = remaining_work - my_share
 
             new_child = Divisible_load_task(other_share)
@@ -116,12 +116,12 @@ class DAG_task(Task):
 #                 it will be intialised when we initialise tasks
         self.dependent_tasks_number = 0
 
-    def total_work(self):
+    def get_work(self):
         """
         returns work
         """
-#       return sum(child.total_work() for child in self.children)
-        return self.work
+#       return sum(child.get_work() for child in self.children)
+        return self.Work
 
     def split_work(self, current_time, granularit, graph=None):
         """
@@ -164,12 +164,12 @@ class Adaptive_task(Task):
         self.reduction_tasks_factory = reduction_tasks_factory
 #                 it will be intialised when we initialise tasks
 
-    def total_work(self):
+    def get_work(self):
         """
         returns work
         """
-#       return sum(child.total_work() for child in self.children)
-        return self.work
+#       return sum(child.get_work() for child in self.children)
+        return self.Work
 
     def get_waiting_time(self, current_time):
         """
@@ -190,8 +190,8 @@ class Adaptive_task(Task):
         right_child = Adaptive_task(right_work,
                                     self.reduction_tasks_factory)
 
-        reduce_task = self.reduction_tasks_factory(left_child.work,
-                                                   right_child.work)
+        reduce_task = self.reduction_tasks_factory(left_child.get_work(),
+                                                   right_child.get_work())
 
         reduce_task.children = self.children
         waiting_task.children = [right_child]
@@ -221,7 +221,7 @@ class Adaptive_task(Task):
         computed_work = current_time - self.start_time
         waiting_time = self.get_waiting_time(current_time)
         # a voire comment on va le calculer
-        remaining_work = self.work - computed_work - waiting_time
+        remaining_work = self.get_work() - computed_work - waiting_time
         my_share = remaining_work//2
 
         assert remaining_work + waiting_time >= 0
@@ -239,10 +239,10 @@ class Adaptive_task(Task):
         graph[self.id]["children"] = \
                 [l_child.id, waiting_task.id]
 
-        self.work = computed_work + waiting_time
+        self.Work = computed_work + waiting_time
         self.children = [l_child]
         return current_time + waiting_time, waiting_task,\
-                waiting_time + reduce_task.work
+                waiting_time + reduce_task.get_work()
 
     def end_execute_task(self, graph, current_time, processor_number):
         """
@@ -398,9 +398,9 @@ def compute_depth(tasks):
     for task_id in tasks_ids:
         task = tasks[task_id]
         if task.children:
-            depths[task_id] = task.total_work() + max(depths[c.id] for c in task.children)
+            depths[task_id] = task.get_work() + max(depths[c.id] for c in task.children)
         else:
-            depths[task_id] = task.total_work()
+            depths[task_id] = task.get_work()
 
     return depths[0]
 
@@ -409,7 +409,7 @@ def compute_work(tasks):
     """
     compute the total work of the graph of given tasks.
     """
-    return sum(t.total_work() for t in tasks)
+    return sum(t.get_work() for t in tasks)
 
 def get_reduce_work(left_child, right_child):
     """

@@ -19,6 +19,24 @@ conjecture fred : plus de variabilite sur les graphes
      - coder (1 jour)
      - debug (quelques jours)
 
+--> OK (05/10/2018)
+
+Retouche
+    - sauf children_id
+    - modif divisible load
+    - renommage task
+    - chgt constructeurs
+
+Reste :
+   -> lien entre taille d'entree et travail
+   -> faire une lambda qui renvoie n log n + les while pour les estimations de temps
+
+* idee de preuve : borner le temps d'exec maintenant que l'on a les waiting time
+   -> mettre une taille de blocs maximale ???? minimale ???
+
+* "implementer" differents algos
+
+
 * modele d'acces aux donnees
   - modele ?
   - vrais expes pour trouver le modele

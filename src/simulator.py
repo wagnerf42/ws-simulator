@@ -179,8 +179,8 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptative:
-                            # simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: DAG_task(left_work+right_work, children, children_id, task_id, dependent_tasks_number=dependent_tasks_number)))
-                            simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, children_id, task_id, dependent_tasks_number: DAG_task(1, children, children_id, task_id, dependent_tasks_number=dependent_tasks_number), children, children_id, task_id, dependent_tasks_number=dependent_tasks_number)))
+                            # simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(left_work+right_work, children, task_id, dependent_tasks_number=dependent_tasks_number)))
+                            simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(1, children, task_id, dependent_tasks_number=dependent_tasks_number), children, task_id, dependent_tasks_number=dependent_tasks_number)))
                             depth = 0
                         else:
                             simulator.reset(work, Divisible_load_task(work))

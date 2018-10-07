@@ -198,7 +198,7 @@ class Adaptive_task(Task):
                                       task_id=(last_id + 3),
                                       dependent_tasks_number=1)
         waiting_task = DAG_task(waiting_time, [right_child],
-                               [right_child.id], task_id=(last_id+ 2),
+                                task_id=(last_id+ 2),
                                 dependent_tasks_number=0)
 
         reduce_task = self.reduction_tasks_factory(left_child.work, right_child.work, self.children, (last_id+4), 2)

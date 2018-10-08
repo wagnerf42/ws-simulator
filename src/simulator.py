@@ -179,13 +179,24 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptative:
+                            #  simulator.reset(work,
+                            #        Adaptive_task(
+                            #            work,
+                            #            lambda left_work, right_work:DAG_task(left_work+right_work),
+                            #            lambda size : size*2
+                            #                    )
+                            #               )
                             simulator.reset(work,
-                                    Adaptive_task(
-                                        work,
-                                        lambda left_work, right_work:DAG_task(left_work+right_work)
-                                                )
-                                           )
-                            #simulator.reset(work, Adaptive_task(work, lambda left_work, right_work, children, task_id, dependent_tasks_number: Adaptive_task(left_work + right_work, lambda left_work, right_work, children, task_id, dependent_tasks_number: DAG_task(1, children, task_id, dependent_tasks_number=dependent_tasks_number), children, task_id, dependent_tasks_number=dependent_tasks_number)))
+                                    Adaptive_task(work,
+                                        lambda left_work, right_work, :
+                                        Adaptive_task(left_work + right_work,
+                                                    lambda left_work, right_work, :
+                                                    DAG_task(1),
+                                                    lambda size: size
+                                                    ),
+                                        lambda size:size*3
+                                        )
+                                    )
                             depth = 0
                         else:
                             simulator.reset(work, Divisible_load_task(work))

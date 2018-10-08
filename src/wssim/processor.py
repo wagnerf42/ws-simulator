@@ -41,7 +41,7 @@ class Processor:
             self.current_task = first_task
             self.current_task.start_time = 0
             self.simulator.steal_info["W0"] = self.current_task.get_work()
-            self.current_task.update_graph_data(self.simulator.graph, time=0, processor_number=self.number)
+            self.current_task.update_graph_data(self.simulator.graph, current_time=0, processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.get_work()//self.speed, self))
         else:

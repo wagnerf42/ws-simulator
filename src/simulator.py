@@ -2,18 +2,20 @@
 """
 Simulation System configuration
 """
+
 import json
-import wssim
 import argparse
-from math import floor
+from math import floor, log2
 from random import seed
 from time import clock
-from wssim.task import DAG_task, Divisible_load_task, Adaptive_task
+
+import wssim
+from wssim.task import DagTask, DivisibleLoadTask, AdaptiveTask
 from wssim.simulator import Simulator
-from wssim.task import Task, init_task_tree, compute_depth, display_DAG
-from wssim import activate_logs, set_unit
+from wssim.task import init_task_tree
+from wssim import activate_logs, svg_time_scal
 from wssim.topology.cluster import Topology
-#from wssim.topology.clusters import Topology
+# from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -66,16 +68,17 @@ def main():
                         type=int, help="interval config of \
                         latencies ,\
                         (-lconf min_latency max_latency step)")
-    parser.add_argument('-wconf', nargs=3, dest="work_config",
+    parser.add_argument('-iwsconf', nargs=3, dest="iws_config",
                         type=int, help="interval config of \
-                        work,\
-                        (-wconf min_work max_work multiplicative_step)")
+                        input work size,\
+                        (-iwsconf min_input_work_size\
+                        max_input_work_size multiplicative_step)")
     parser.add_argument("-p", dest="processors",
                         default=4, type=int,
                         help="total number of processors")
-    parser.add_argument("-w", dest="work",
+    parser.add_argument("-iws", dest="work_size",
                         default=100, type=int,
-                        help="total work")
+                        help="Input Work Size")
     parser.add_argument("-l", dest="latency",
                         default=5, type=int,
                         help="latency for remote steal")
@@ -86,8 +89,8 @@ def main():
                         help="number of runs to execute")
     parser.add_argument("-tasks", dest="tasks", action="store_true",
                         help="use tree tasks")
-    parser.add_argument("-adapt", dest="adaptative", action="store_true",
-                        help="use adaptative tasks")
+    parser.add_argument("-adapt", dest="adaptive", action="store_true",
+                        help="use adaptive tasks")
     parser.add_argument("-d", dest="debug", action="store_true",
                         help="activate traces")
     parser.add_argument("-tt", dest="task_threshold", default=[100],
@@ -101,8 +104,8 @@ def main():
                         help="activate simultaneously steal")
     parser.add_argument("-json_in", dest="json_file_in", default=None)
     parser.add_argument("-json_out", dest="json_file_out", default=None)
-    parser.add_argument("-svg_time_scal", dest="unit", default=100, type=int,
-                        help="unit for svg")
+    parser.add_argument("-svgts", dest="svg_time_scal", default=100, type=int,
+                        help="svg time scal")
 
     arguments = parser.parse_args()
 
@@ -113,7 +116,7 @@ def main():
         activate_logs()
 
     if arguments.json_file_out is not None:
-        set_unit(arguments.unit)
+        svg_time_scal(arguments.svg_time_scal)
 
     platform = Topology(arguments.processors,
                         arguments.is_simultaneous)
@@ -135,17 +138,17 @@ def main():
         works = [0]
     else:
         simulator.graph = []
-        if not arguments.work_config:
-            works = [arguments.work]
+        if not arguments.iws_config:
+            works = [arguments.work_size]
         else:
-            works = list(power_range(*arguments.work_config))
+            works = list(power_range(*arguments.iws_config))
 
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
-    \twork\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tIDATAT\tEDATAT\tW0\tW1")
+    \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
+    \trGranularity\tIDATAT\tEDATAT\tW0\tW1\twaiting-time")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -178,35 +181,34 @@ def main():
                                                        tasks_data.values()]
 
                             simulator.reset(work, first_task)
-                        elif arguments.adaptative:
-                            #  simulator.reset(work,
-                            #        Adaptive_task(
+                        elif arguments.adaptive:
+                            #simulator.reset(work,
+                            #        AdaptiveTask(
                             #            work,
-                            #            lambda left_work, right_work:DAG_task(left_work+right_work),
-                            #            lambda size : size*2
-                            #                    )
-                            #               )
-                            simulator.reset(work,
-                                    Adaptive_task(work,
-                                        lambda left_work, right_work, :
-                                        Adaptive_task(left_work + right_work,
-                                                    lambda left_work, right_work, :
-                                                    DAG_task(1),
-                                                    lambda size: size
-                                                    ),
-                                        lambda size:size*3
-                                        )
-                                    )
+                            #            lambda left_size, right_size: DagTask(left_size + right_size),
+                            #            lambda size : size * log2(size)
+                            #            )
+                            #        )
                             depth = 0
+                            simulator.reset(work,
+                                            AdaptiveTask(work,
+                                                         lambda left_size, right_size:
+                                                         AdaptiveTask(left_size + right_size,
+                                                                      lambda left_size, right_size: DagTask(1),
+                                                                      lambda size: size
+                                                                     ),
+                                                         lambda size: size * log2(size)
+                                                        )
+                                           )
                         else:
-                            simulator.reset(work, Divisible_load_task(work))
+                            simulator.reset(work, DivisibleLoadTask(work))
                             depth = 0
 
                         simulator.run()
                         if arguments.json_file_out:
                             json_data = dict()
                             json_data["threads_number"] = arguments.processors
-                            json_data["duration"] = simulator.time * wssim.UNIT
+                            json_data["duration"] = simulator.time * wssim.SVGTS
                             json_data["tasks_number"] = len(simulator.graph)
                             json_data["tasks_logs"] = simulator.graph
 
@@ -215,7 +217,7 @@ def main():
                                           outfile, indent=2)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -233,6 +235,7 @@ def main():
                                   simulator.steal_info["WE"],
                                   simulator.steal_info["W0"],
                                   simulator.steal_info["W1"],
+                                  simulator.steal_info["waiting_time"]
                                   # simulator.steal_info["beginning"]
                               ))
 

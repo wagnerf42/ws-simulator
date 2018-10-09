@@ -18,10 +18,7 @@ class Task:
     remaining_tasks = 0
 
     def __init__(self, task_size, task_id=None):
-        if task_id:
-            self.id = task_id
-        else:
-            self.id = Task.tasks_number
+        self.id = Task.tasks_number
         self.task_size = task_size
         self.start_time = 0
         self.children = []
@@ -67,8 +64,8 @@ class Task:
         if get_last_id_from_the_json_data(graph) >= self.id:
             graph[self.id]["id"] = self.id
             graph[self.id]["thread_id"] = processor_number
-            graph[self.id]["end_time"] = current_time * wssim.UNIT
-            graph[self.id]["start_time"] = (current_time - self.get_work()) * wssim.UNIT
+            graph[self.id]["end_time"] = current_time * wssim.SVGTS
+            graph[self.id]["start_time"] = (current_time - self.get_work()) * wssim.SVGTS
             # besoin speed
         else:
             info = dict()
@@ -136,11 +133,13 @@ class DagTask(Task):
     class for divisible load tasks
     """
 
-    def __init__(self, task_size, work_for_size=lambda size: size, task_id=None):
+    def __init__(self, task_size, work_for_size=lambda size: size,
+                 task_id=None):
 
-        super().__init__(task_size, task_id=task_id)
+        super().__init__(task_size)
+        if task_id:
+            self.id = task_id
         self.children = []
-#                 it will be intialised when we initialise tasks
         self.dependent_tasks_number = 0
         self.work_for_size = work_for_size
 
@@ -354,33 +353,29 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     else:
         # if total_work//2 < threshold:
         if total_work <= threshold:
-            current_task = DagTask(total_work, task_id=task_id)
+            current_task = DagTask(total_work)
             current_task.dependent_tasks_number = 1
             return current_task
         else:
             if total_work//2 <= threshold:
 
+                current_task = DagTask(0)
                 l_child = init_task_tree(total_work=threshold,
-                                         threshold=threshold,
-                                         task_id=(task_id*2 + 1))
+                                         threshold=threshold)
                 r_child = init_task_tree(total_work=total_work-threshold,
-                                         threshold=threshold,
-                                         task_id=(task_id*2 + 2))
+                                         threshold=threshold)
 
-                current_task = DagTask(0, task_id=task_id)
                 current_task.children = [l_child, r_child]
                 current_task.dependent_tasks_number = 1
 
                 return current_task
             else:
+                current_task = DagTask(0)
                 l_child = init_task_tree(total_work=total_work//2,
-                                         threshold=threshold,
-                                         task_id=(task_id*2 + 1))
+                                         threshold=threshold)
                 r_child = init_task_tree(total_work=total_work-total_work//2,
-                                         threshold=threshold,
-                                         task_id=(task_id*2 + 2))
+                                         threshold=threshold)
 
-                current_task = DagTask(0, task_id=task_id)
                 current_task.children = [l_child, r_child]
                 current_task.dependent_tasks_number = 1
                 return current_task

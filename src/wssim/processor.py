@@ -2,10 +2,11 @@
 the processor module provides a Processor class
 holding processors states for the simulation.
 """
-import wssim
+
 from collections import deque
+
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-from wssim.task import DagTask, DivisibleLoadTask, AdaptiveTask
+
 
 class Processor:
     """
@@ -27,6 +28,7 @@ class Processor:
         self.current_task = None
         self.cluster = cluster
         self.tasks = deque()
+        print("P{} on C{}".format(self.number, self.cluster))
 
     def reset(self, first_task=None):
         """
@@ -39,8 +41,9 @@ class Processor:
         if first_task is not None:
             self.current_task = first_task
             self.current_task.start_time = 0
-            self.simulator.steal_info["W0"] = self.current_task.get_work()
-            self.current_task.update_graph_data(self.simulator.graph, current_time=0, processor_number=self.number)
+            self.current_task.update_graph_data(self.simulator.graph,
+                                                current_time=0,
+                                                processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.get_work()//self.speed, self))
         else:
@@ -56,9 +59,7 @@ class Processor:
         """
         display processor info
         """
-        nom  = "P" + str(self.number)
-
-        print(nom, self.tasks)
+        print("P{}".format(self.number), self.tasks)
 
     def get_part_of_work_if_exist(self, stealer):
         """
@@ -78,11 +79,10 @@ class Processor:
                 granularity = self.simulator.topology.remote_granularity
 
             splitting_result = \
-                    self.current_task.split_work(
-                            self.current_time,
-                            granularity,
-                            graph=self.simulator.graph
-                            )
+                    self.current_task.split_work(self.current_time,
+                                                 granularity,
+                                                 graph=self.simulator.graph
+                                                )
 
             if splitting_result:
                 idle_time, created_task, reduce_work = splitting_result
@@ -106,20 +106,14 @@ class Processor:
             # we can use network and we have enough work to send
             stolen_task = self.get_part_of_work_if_exist(stealer)
             if stolen_task is not None:
-                self.simulator.steal_info["waiting_time"] += stolen_task.task_size
+                self.simulator.steal_info["waiting_time"] += \
+                        stolen_task.task_size
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1
                     self.simulator.steal_info["WI"] += stolen_task.get_work()
                 else:
                     self.simulator.steal_info["SEWR"] += 1
                     self.simulator.steal_info["WE"] += stolen_task.get_work()
-                    if stealer.cluster == 1:
-                        self.simulator.steal_info["W1"] += stolen_task.get_work()
-                        self.simulator.steal_info["W0"] -= stolen_task.get_work()
-                    else:
-                        self.simulator.steal_info["W1"] -= stolen_task.get_work()
-                        self.simulator.steal_info["W0"] += stolen_task.get_work()
-
 
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
@@ -130,7 +124,8 @@ class Processor:
                             self, new_state="Sending")
                         stealer.simulator.logger.update_processor_state(
                             stealer, new_state="Receiving")
-                        self.simulator.logger.sub_work(self, stolen_task.get_work())
+                        self.simulator.logger.sub_work(self,
+                                                       stolen_task.get_work())
                         self.simulator.logger.add_work(
                             stealer, stolen_task.get_work())
         else:
@@ -152,26 +147,33 @@ class Processor:
         self.current_time = self.simulator.time
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
+            if self.cluster == 0:
+                self.simulator.steal_info["W0"] += \
+                        self.current_task.get_task_size()
+            else:
+                self.simulator.steal_info["W1"] += \
+                        self.current_task.get_task_size()
+
             self.simulator.total_work -= self.current_task.get_work()
-            ready_tasks = self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number)
-            #print("P",self.number, "executing tasks : ", self.current_task.id, "(", self.current_task.get_work(), ")" )
+            ready_tasks = self.current_task.end_execute_task(
+                self.simulator.graph,
+                self.current_time,
+                self.number)
             self.tasks.extend(ready_tasks)
             self.current_task = None
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 while self.current_task.get_work() == 0:
-                    self.tasks.extend(self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number))
+                    self.tasks.extend(self.current_task.end_execute_task(
+                        self.simulator.graph,
+                        self.current_time,
+                        self.number))
                     assert self.tasks
                     self.current_task = self.tasks.pop()
 
-                if self.cluster == 0:
-                    self.simulator.steal_info["W0"] += self.current_task.get_work()
-                else:
-                    self.simulator.steal_info["W1"] += self.current_task.get_work()
-
                 self.current_task.start_time = self.current_time
-                becoming_idle_time = self.current_time + \
-                self.current_task.get_work()//self.speed
+                becoming_idle_time = \
+                    self.current_time + self.current_task.get_work()//self.speed
                 assert self.current_task.get_work() >= self.speed
                 self.simulator.add_event(IdleEvent(becoming_idle_time, self))
                 if __debug__:
@@ -213,19 +215,21 @@ class Processor:
         we receive an answer from steal request.
         """
         self.current_time = self.simulator.time
-        #assert not self.tasks
+        # assert not self.tasks
         if stolen_task is None:
             # still no work, steal again
             self.start_stealing()
         else:
             self.current_task = stolen_task
-            #TODO: repetition
+            # Todo: repetition
             while self.current_task.get_work() == 0:
-                self.tasks.extend(self.current_task.end_execute_task(self.simulator.graph, self.current_time, self.number))
+                self.tasks.extend(self.current_task.end_execute_task(
+                    self.simulator.graph,
+                    self.current_time,
+                    self.number))
                 assert self.tasks
                 self.current_task = self.tasks.pop()
             assert self.current_task.get_work()
-            self.simulator.steal_info["W0"] += stolen_task.get_work()
             self.current_task.start_time = self.current_time
             becoming_idle_time = self.current_time + \
                 self.current_task.get_work()//self.speed

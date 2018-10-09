@@ -4,7 +4,8 @@ main module for simulator.
 """
 LOGGING = False
 
-UNIT = 100
+SVGTS = 100
+
 
 def activate_logs():
     """
@@ -15,10 +16,9 @@ def activate_logs():
     LOGGING = True
 
 
-
-def set_unit(unit):
+def svg_time_scal(set_svg_time_scal):
     """
     set unit to visualise the svg
     """
-    global UNIT
-    UNIT = unit
+    global SVGTS
+    SVGTS = set_svg_time_scal

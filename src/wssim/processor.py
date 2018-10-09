@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.5
 """
 the processor module provides a Processor class
 holding processors states for the simulation.
@@ -6,7 +5,7 @@ holding processors states for the simulation.
 import wssim
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-from wssim.task import DAG_task, Divisible_load_task, Adaptive_task
+from wssim.task import DagTask, DivisibleLoadTask, AdaptiveTask
 
 class Processor:
     """
@@ -107,6 +106,7 @@ class Processor:
             # we can use network and we have enough work to send
             stolen_task = self.get_part_of_work_if_exist(stealer)
             if stolen_task is not None:
+                self.simulator.steal_info["waiting_time"] += stolen_task.task_size
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1
                     self.simulator.steal_info["WI"] += stolen_task.get_work()

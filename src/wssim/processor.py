@@ -28,7 +28,6 @@ class Processor:
         self.current_task = None
         self.cluster = cluster
         self.tasks = deque()
-        print("P{} on C{}".format(self.number, self.cluster))
 
     def reset(self, first_task=None):
         """
@@ -82,7 +81,7 @@ class Processor:
                     self.current_task.split_work(self.current_time,
                                                  granularity,
                                                  graph=self.simulator.graph
-                                                )
+                                                 )
 
             if splitting_result:
                 idle_time, created_task, reduce_work = splitting_result
@@ -98,6 +97,7 @@ class Processor:
         """
         self.current_time = self.simulator.time
         reply_time = self.simulator.communication_end_time(self, stealer)
+        self.simulator.steal_info["idle_time"] += self.simulator.topology.latency
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
@@ -201,6 +201,7 @@ class Processor:
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
+        self.simulator.steal_info["idle_time"] += self.simulator.topology.latency
         if self.cluster == victim.cluster:
             self.simulator.steal_info["IWR"] += 1
         else:

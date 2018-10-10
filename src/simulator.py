@@ -13,7 +13,7 @@ import wssim
 from wssim.task import DagTask, DivisibleLoadTask, AdaptiveTask
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
-from wssim import activate_logs, svg_time_scal
+from wssim import activate_logs, svg_time_scal, block_factory
 from wssim.topology.cluster import Topology
 # from wssim.topology.clusters import Topology
 
@@ -106,6 +106,9 @@ def main():
     parser.add_argument("-json_out", dest="json_file_out", default=None)
     parser.add_argument("-svgts", dest="svg_time_scal", default=100, type=int,
                         help="svg time scal")
+    parser.add_argument("-blk_factory", dest="block_factory", default=(1 + 5 ** 0.5) / 2, 
+                        type=float)
+
 
     arguments = parser.parse_args()
 
@@ -115,8 +118,11 @@ def main():
     if arguments.debug:
         activate_logs()
 
-    if arguments.json_file_out is not None:
+    if arguments.json_file_out:
         svg_time_scal(arguments.svg_time_scal)
+
+    if arguments.block_factory:
+        block_factory(arguments.block_factory)
 
     platform = Topology(arguments.processors,
                         arguments.is_simultaneous)
@@ -148,7 +154,7 @@ def main():
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
     \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tIDATAT\tEDATAT\tW0\tW1\twaiting-time")
+    \trGranularity\tW0\tW1\twaiting-time\tidle_time")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -191,9 +197,9 @@ def main():
                             #        )
                             depth = 0
                             simulator.reset(work,
-                                            AdaptiveTask(work,
+                                            AdaptiveTask(work, arguments.local_granularity,
                                                          lambda left_size, right_size:
-                                                         AdaptiveTask(left_size + right_size,
+                                                         AdaptiveTask(left_size + right_size, arguments.local_granularity,
                                                                       lambda left_size, right_size: DagTask(1),
                                                                       lambda size: size
                                                                      ),
@@ -217,7 +223,7 @@ def main():
                                           outfile, indent=2)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -231,11 +237,10 @@ def main():
                                   threshold,
                                   arguments.local_granularity,
                                   arguments.remote_granularity,
-                                  simulator.steal_info["WI"],
-                                  simulator.steal_info["WE"],
                                   simulator.steal_info["W0"],
                                   simulator.steal_info["W1"],
-                                  simulator.steal_info["waiting_time"]
+                                  simulator.steal_info["waiting_time"],
+                                  simulator.steal_info["idle_time"]
                                   # simulator.steal_info["beginning"]
                               ))
 

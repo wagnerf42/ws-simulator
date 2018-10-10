@@ -182,10 +182,11 @@ class AdaptiveTask(Task):
     when the owner processor receives a steal
     """
 
-    def __init__(self, task_size, reduction_tasks_factory, work_for_size):
+    def __init__(self, task_size, granularity, reduction_tasks_factory, work_for_size):
 
         super().__init__(task_size)
         self.children = []
+        self.granularity = granularity
 #                 at which time is the task started
         self.reduction_tasks_factory = reduction_tasks_factory
         self.work_for_size = work_for_size
@@ -199,10 +200,11 @@ class AdaptiveTask(Task):
         current_block_number = 0
         remaining_size = self.task_size
         while remaining_size > 0:
-            current_block_size = min(block_size(2, current_block_number),
+            current_block_size = min(block_size(self.granularity, current_block_number),
                                      remaining_size)
             work += self.work_for_size(current_block_size)
             remaining_size -= current_block_size
+            current_block_number += 1
 
         return int(work)
 
@@ -213,7 +215,7 @@ class AdaptiveTask(Task):
         return (finish_time - self.start_time)\
                 * processor_speed == self.get_work()
 
-    def stop_task(self, current_time):
+    def stop_task(self, current_time, granularity):
         """
         the task would be executed by blocks.
         at each time we can get the current block.
@@ -221,11 +223,11 @@ class AdaptiveTask(Task):
         it based on the function get_block_size
         """
         current_block_number = 0
-        task_size = 0 # current_block_size
+        task_size = 0
         task_end_time = self.start_time
         remaining_size = self.task_size
         while current_time > task_end_time:
-            current_block_size = min(block_size(2, current_block_number),
+            current_block_size = min(block_size(self.granularity, current_block_number),
                                      remaining_size)
             current_block_work = self.work_for_size(current_block_size)
             current_block_number += 1
@@ -241,18 +243,17 @@ class AdaptiveTask(Task):
         split task and return all generated tasks
         """
 
-        left_child = AdaptiveTask(left_size,
+        left_child = AdaptiveTask(left_size, self.granularity,
                                   self.reduction_tasks_factory,
                                   self.work_for_size)
         waiting_task = DagTask(waiting_time)
 
-        right_child = AdaptiveTask(right_size,
+        right_child = AdaptiveTask(right_size, self.granularity,
                                    self.reduction_tasks_factory,
                                    self.work_for_size)
 
         reduce_task = self.reduction_tasks_factory(left_size,
                                                    right_size)
-
         reduce_task.children = self.children
         waiting_task.children = [right_child]
 
@@ -266,20 +267,20 @@ class AdaptiveTask(Task):
 
         return left_child, right_child, waiting_task, reduce_task
 
-    def split_work(self, current_time, _, graph=None):
+    def split_work(self, current_time, granularity, graph=None):
         """
         unsplited tasks, return None
         """
-        end_time, current_task_size = self.stop_task(current_time)
+        end_time, current_task_size = self.stop_task(current_time, granularity)
         waiting_time = ceil(end_time - current_time)
         # a voire comment on va le calculer
         remaining_size = self.task_size - current_task_size
         my_share = remaining_size//2
 
-        if my_share <= 1 or current_task_size == 0:
+        if my_share <= granularity or current_task_size == 0:
             return None
 
-        #assert current_task_size == self.task_size
+        # assert current_task_size == self.task_size
 
         l_child, r_child, waiting_task, reduce_task = \
                 self.split_tasks_with_waiting_time(my_share,
@@ -290,7 +291,6 @@ class AdaptiveTask(Task):
         add_tasks_to_json([l_child, waiting_task, r_child, reduce_task], graph)
         graph[self.id]["children"] = \
                 [l_child.id, waiting_task.id]
-
         self.set_work_size(current_task_size)
         self.children = [l_child]
 
@@ -324,8 +324,7 @@ def block_size(initial_block_size, block_number):
     return block size based on its number.
     we use "Golden ratio" to compute the size in each block
     """
-    phi = (1 + 5 ** 0.5) / 2
-    return ceil(initial_block_size * phi**block_number)
+    return ceil(initial_block_size * wssim.BLOCK_FACTORY**block_number)
 
 
 def get_last_id_from_the_json_data(graph):

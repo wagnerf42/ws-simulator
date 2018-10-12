@@ -10,7 +10,7 @@ from random import seed
 from time import clock
 
 import wssim
-from wssim.task import DagTask, DivisibleLoadTask, AdaptiveTask
+from wssim.task import Task, DagTask, DivisibleLoadTask, AdaptiveTask
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factory
@@ -154,7 +154,7 @@ def main():
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
     \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tW0\tW1\twaiting-time\tidle_time")
+    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -196,14 +196,17 @@ def main():
                             #            )
                             #        )
                             depth = 0
+                            Task.tasks_number = 0
                             simulator.reset(work,
-                                            AdaptiveTask(work, arguments.local_granularity,
+                                            AdaptiveTask(work, arguments.local_granularity, 0,
                                                          lambda left_size, right_size:
-                                                         AdaptiveTask(left_size + right_size, arguments.local_granularity,
-                                                                      lambda left_size, right_size: DagTask(1),
-                                                                      lambda size: size
+                                                         AdaptiveTask(left_size + right_size, arguments.local_granularity, 2,
+                                                                      lambda left_size, right_size: DagTask(1, 3),
+                                                                      lambda size: size,
+                                                                      lambda n1, n2: 1
                                                                      ),
-                                                         lambda size: size * log2(size)
+                                                         lambda size: size * log2(size),
+                                                         lambda n1, n2: n1 + n2,
                                                         )
                                            )
                         else:
@@ -223,7 +226,7 @@ def main():
                                           outfile, indent=2)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -239,6 +242,7 @@ def main():
                                   arguments.remote_granularity,
                                   simulator.steal_info["W0"],
                                   simulator.steal_info["W1"],
+                                  arguments.block_factory,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"]
                                   # simulator.steal_info["beginning"]

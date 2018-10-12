@@ -23,13 +23,13 @@ class Simulator:
         self.local_granularity = None
         self.remote_granularity = None
         self.is_beginning = True
-        self.graph = []
 
         if __debug__:
             if self.log_file is not None:
                 self.logger = Logger(log_file, self)
         self.events = list()
         self.processors = list()
+        self.graph = list()
         # associate to each processor the next valid event
         # we do that since the heap contains cancelled events which we
         # cannot remove
@@ -47,8 +47,9 @@ class Simulator:
         """
         self.valid_events.clear()
         self.events.clear()
-        self.total_work = work
+        self.total_work = 0
         self.time = 0
+        self.graph.clear()
         self.is_beginning = True
         self.steal_info.clear()
         self.active_processors.clear()

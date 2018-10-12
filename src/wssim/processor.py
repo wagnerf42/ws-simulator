@@ -83,6 +83,7 @@ class Processor:
                                                  graph=self.simulator.graph
                                                  )
 
+
             if splitting_result:
                 idle_time, created_task, reduce_work = splitting_result
                 self.simulator.total_work += reduce_work
@@ -106,8 +107,6 @@ class Processor:
             # we can use network and we have enough work to send
             stolen_task = self.get_part_of_work_if_exist(stealer)
             if stolen_task is not None:
-                self.simulator.steal_info["waiting_time"] += \
-                        stolen_task.task_size
                 if self.cluster == stealer.cluster:
                     self.simulator.steal_info["SIWR"] += 1
                     self.simulator.steal_info["WI"] += stolen_task.get_work()
@@ -117,6 +116,10 @@ class Processor:
 
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
+                    if stolen_task.type == 1:
+                        self.network_time += stolen_task.get_work()
+
+
 
                 if __debug__:
                     if self.simulator.log_file is not None:
@@ -147,12 +150,15 @@ class Processor:
         self.current_time = self.simulator.time
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
-            if self.cluster == 0:
+            if self.current_task.type == 1:
+                self.simulator.steal_info["waiting_time"] += \
+                        self.current_task.get_work()
+            elif self.cluster == 0:
                 self.simulator.steal_info["W0"] += \
-                        self.current_task.get_task_size()
+                        self.current_task.get_work()
             else:
                 self.simulator.steal_info["W1"] += \
-                        self.current_task.get_task_size()
+                        self.current_task.get_work()
 
             self.simulator.total_work -= self.current_task.get_work()
             ready_tasks = self.current_task.end_execute_task(

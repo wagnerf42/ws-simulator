@@ -59,7 +59,15 @@ class IdleEvent(Event):
         """
         display event
         """
-        print("P", self.processor.number, "becomming idle at ", self.time)
+        if self.processor.current_task:
+            print(" P", self.processor.number,
+                  "becomming idle at ",
+                  self.time, "T{} type:{}, size:{}, work:{}".format(self.processor.current_task.id,
+                                                                  self.processor.current_task.type,
+                                                                  self.processor.current_task.task_size,
+                                                                  self.processor.current_task.get_work()))
+        else:
+            print(" -- > P", self.processor.number, "becomming idle at ", self.time)
 
 
 class StealRequestEvent(Event):

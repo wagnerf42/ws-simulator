@@ -171,6 +171,7 @@ def main():
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
                     for _ in range(arguments.runs):
+                        Task.tasks_number = 0
                         if arguments.tasks or arguments.json_file_in is not None:
 
                             if arguments.json_file_in is not None:
@@ -196,7 +197,6 @@ def main():
                             #            )
                             #        )
                             depth = 0
-                            Task.tasks_number = 0
                             simulator.reset(work,
                                             AdaptiveTask(work, arguments.local_granularity, 0,
                                                          lambda left_size, right_size:

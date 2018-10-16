@@ -2,7 +2,7 @@
 """
 topology related functions for 1 cluster.
 """
-from random import randint
+from random import random
 
 
 class Topology:
@@ -52,7 +52,7 @@ class Topology:
         """
         select a random target not unwanted_processor_number.
         """
-        target_number = unwanted_processor_number
-        while target_number == unwanted_processor_number:
-            target_number = randint(0, self.processors_number-1)
-        return target_number
+        victim = int(random() * (self.processors_number-1))
+        if victim >= unwanted_processor_number:
+            victim += 1
+        return victim

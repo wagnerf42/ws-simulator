@@ -70,7 +70,7 @@ class Task:
                     (current_time - self.get_work()) * wssim.SVGTS
             # besoin speed
             assert self.get_work()* wssim.SVGTS == graph[self.id]["end_time"] - graph[self.id]["start_time"]
-            graph[self.id]["work"] = [self.type, self.get_work()] 
+            graph[self.id]["work"] = [self.type, self.get_work()]
         else:
             info = dict()
             info["id"] = self.id
@@ -212,7 +212,8 @@ class AdaptiveTask(Task):
                         remaining_size)
             work += self.work_for_size(current_block_size)
             completed_size = self.task_size - remaining_size
-            work += self.reduce_for_size(completed_size, current_block_size)
+            if completed_size:
+                work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             current_block_number += 1
         return int(work)
@@ -241,7 +242,8 @@ class AdaptiveTask(Task):
             current_block_work = self.work_for_size(current_block_size)
             current_block_number += 1
             completed_size = self.task_size - remaining_size
-            current_block_work += self.reduce_for_size(completed_size, current_block_size)
+            if completed_size:
+                current_block_work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             task_size += current_block_size
             task_end_time += current_block_work

@@ -31,11 +31,16 @@ Reste :
    -> lien entre taille d'entree et travail
    -> faire une lambda qui renvoie n log n + les while pour les estimations de temps
 
+---> OK (10/10/2018)
+
+* expes: faire varier le facteur d'agrandissement des blocs (actuellement phi)
+  -> sur le tri fusion adaptatif
+  -> tracer le temps d'exec et idle time et waiting time
+
 * idee de preuve : borner le temps d'exec maintenant que l'on a les waiting time
    -> mettre une taille de blocs maximale ???? minimale ???
 
 * "implementer" differents algos
-
 
 * modele d'acces aux donnees
   - modele ?

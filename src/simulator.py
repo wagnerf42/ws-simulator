@@ -5,7 +5,7 @@ Simulation System configuration
 
 import json
 import argparse
-from math import floor, log2
+from math import floor, log2, sqrt
 from random import seed
 from time import clock
 
@@ -13,7 +13,7 @@ import wssim
 from wssim.task import Task, DagTask, DivisibleLoadTask, AdaptiveTask
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
-from wssim import activate_logs, svg_time_scal, block_factory
+from wssim import activate_logs, svg_time_scal, block_factor
 from wssim.topology.cluster import Topology
 # from wssim.topology.clusters import Topology
 
@@ -106,7 +106,7 @@ def main():
     parser.add_argument("-json_out", dest="json_file_out", default=None)
     parser.add_argument("-svgts", dest="svg_time_scal", default=100, type=int,
                         help="svg time scal")
-    parser.add_argument("-blk_factory", dest="block_factory", default=(1 + 5 ** 0.5) / 2, 
+    parser.add_argument("-blk_factor", dest="block_factor", default=2,
                         type=float)
 
 
@@ -121,8 +121,8 @@ def main():
     if arguments.json_file_out:
         svg_time_scal(arguments.svg_time_scal)
 
-    if arguments.block_factory:
-        block_factory(arguments.block_factory)
+    if arguments.block_factor:
+        block_factor(arguments.block_factor)
 
     platform = Topology(arguments.processors,
                         arguments.is_simultaneous)
@@ -242,7 +242,7 @@ def main():
                                   arguments.remote_granularity,
                                   simulator.steal_info["W0"],
                                   simulator.steal_info["W1"],
-                                  arguments.block_factory,
+                                  arguments.block_factor,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"]
                                   # simulator.steal_info["beginning"]

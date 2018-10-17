@@ -5,7 +5,7 @@ holding work of task and list of its children for the simulation.
 from copy import deepcopy
 import json
 import wssim
-from math import ceil
+from math import ceil, floor, log2, sqrt
 
 
 class Task:
@@ -205,9 +205,11 @@ class AdaptiveTask(Task):
         work = 0
         current_block_number = 0
         remaining_size = self.task_size
+        initial_block_size = init_blk_size(self.granularity, self.task_size)
+        cumul = 0
         while remaining_size > 0:
             current_block_size = \
-                    min(block_size(self.granularity,
+                    min(block_size(initial_block_size,
                                    current_block_number),
                         remaining_size)
             work += self.work_for_size(current_block_size)
@@ -216,6 +218,7 @@ class AdaptiveTask(Task):
                 work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             current_block_number += 1
+            cumul += current_block_size
         return int(work)
 
     def finishes_at(self, finish_time, processor_speed):
@@ -236,8 +239,9 @@ class AdaptiveTask(Task):
         task_size = 0
         task_end_time = self.start_time
         remaining_size = self.task_size
+        initial_block_size = init_blk_size(self.granularity, self.task_size)
         while current_time > task_end_time:
-            current_block_size = min(block_size(self.granularity, current_block_number),
+            current_block_size = min(block_size(initial_block_size, current_block_number),
                                      remaining_size)
             current_block_work = self.work_for_size(current_block_size)
             current_block_number += 1
@@ -334,12 +338,23 @@ class AdaptiveTask(Task):
         self.dependent_tasks_number -= 1
 
 
+def init_blk_size(initial_block_size_threshold, task_size):
+    """
+    """
+    block_number = floor(
+                    log2(task_size / initial_block_size_threshold + 1)
+                    - 1)
+
+    initial_block_size = ceil(task_size / (2**(block_number + 1) - 1))
+    return initial_block_size
+
+
 def block_size(initial_block_size, block_number):
     """
     return block size based on its number.
     we use "Golden ratio" to compute the size in each block
     """
-    return ceil(initial_block_size * wssim.BLOCK_FACTORY**block_number)
+    return ceil(initial_block_size * wssim.BLOCK_FACTOR**block_number)
 
 
 def get_last_id_from_the_json_data(graph):

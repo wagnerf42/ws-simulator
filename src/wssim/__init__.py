@@ -6,7 +6,7 @@ LOGGING = False
 
 SVGTS = 100
 
-BLOCK_FACTORY = (1 + 5 ** 0.5) / 2
+BLOCK_FACTOR = 2
 
 
 def activate_logs():
@@ -26,10 +26,10 @@ def svg_time_scal(set_svg_time_scal):
     SVGTS = set_svg_time_scal
 
 
-def block_factory(block_factory):
+def block_factor(block_factor):
     """
-    set block factory
+    set block factor
     default value is phi
     """
-    global BLOCK_FACTORY
-    BLOCK_FACTORY = block_factory
+    global BLOCK_FACTOR
+    BLOCK_FACTOR = block_factor

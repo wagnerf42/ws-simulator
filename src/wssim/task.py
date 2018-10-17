@@ -190,11 +190,12 @@ class AdaptiveTask(Task):
 
         super().__init__(task_size, task_type)
         self.children = []
-        self.granularity = granularity
 #                 at which time is the task started
         self.reduction_tasks_factory = reduction_tasks_factory
         self.work_for_size = work_for_size
         self.reduce_for_size = reduce_for_size
+        self.granularity = granularity
+        self.initial_block_size = init_blk_size(granularity, self.task_size)
 #                 it will be intialised when we initialise tasks
 
     def get_work(self):
@@ -205,11 +206,9 @@ class AdaptiveTask(Task):
         work = 0
         current_block_number = 0
         remaining_size = self.task_size
-        initial_block_size = init_blk_size(self.granularity, self.task_size)
-        cumul = 0
         while remaining_size > 0:
             current_block_size = \
-                    min(block_size(initial_block_size,
+                    min(block_size(self.initial_block_size,
                                    current_block_number),
                         remaining_size)
             work += self.work_for_size(current_block_size)
@@ -218,7 +217,6 @@ class AdaptiveTask(Task):
                 work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             current_block_number += 1
-            cumul += current_block_size
         return int(work)
 
     def finishes_at(self, finish_time, processor_speed):
@@ -228,7 +226,7 @@ class AdaptiveTask(Task):
         return (finish_time - self.start_time)\
                 * processor_speed == self.get_work()
 
-    def stop_task(self, current_time, granularity):
+    def stop_task(self, current_time):
         """
         the task would be executed by blocks.
         at each time we can get the current block.
@@ -239,18 +237,18 @@ class AdaptiveTask(Task):
         task_size = 0
         task_end_time = self.start_time
         remaining_size = self.task_size
-        initial_block_size = init_blk_size(self.granularity, self.task_size)
         while current_time > task_end_time:
-            current_block_size = min(block_size(initial_block_size, current_block_number),
+            current_block_size = min(block_size(self.initial_block_size, current_block_number),
                                      remaining_size)
             current_block_work = self.work_for_size(current_block_size)
-            current_block_number += 1
             completed_size = self.task_size - remaining_size
             if completed_size:
                 current_block_work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             task_size += current_block_size
             task_end_time += current_block_work
+            current_block_number += 1
+
         return task_end_time, task_size
 
     def split_tasks_with_waiting_time(self, left_size, right_size,
@@ -289,13 +287,13 @@ class AdaptiveTask(Task):
         """
         unsplited tasks, return None
         """
-        end_time, current_task_size = self.stop_task(current_time, granularity)
+        end_time, current_task_size = self.stop_task(current_time)
         waiting_time = ceil(end_time - current_time)
         # a voire comment on va le calculer
         remaining_size = self.task_size - current_task_size
         my_share = remaining_size//2
 
-        if my_share <= granularity or current_task_size == 0:
+        if my_share <= self.initial_block_size or current_task_size == 0:
             return None
 
         # assert current_task_size == self.task_size

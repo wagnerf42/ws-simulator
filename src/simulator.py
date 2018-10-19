@@ -5,6 +5,7 @@ Simulation System configuration
 
 import json
 import argparse
+import operator
 from math import floor, log2, sqrt
 from random import seed
 from time import clock
@@ -80,7 +81,7 @@ def main():
                         default=100, type=int,
                         help="Input Work Size")
     parser.add_argument("-l", dest="latency",
-                        default=5, type=int,
+                        default=1, type=int,
                         help="latency for remote steal")
     parser.add_argument("-s", dest="seed", type=float,
                         default=clock(), help="random seed")
@@ -219,11 +220,12 @@ def main():
                             json_data["threads_number"] = arguments.processors
                             json_data["duration"] = simulator.time * wssim.SVGTS
                             json_data["tasks_number"] = len(simulator.graph)
+                            simulator.graph.sort(key=operator.itemgetter('id'))
                             json_data["tasks_logs"] = simulator.graph
 
                             with open(arguments.json_file_out, 'w') as outfile:
                                 json.dump(json_data,
-                                          outfile, indent=2)
+                                          outfile, indent=4)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
                               \t{}\t{}\t{}\t{}\t{}\t{}"

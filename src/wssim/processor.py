@@ -40,9 +40,9 @@ class Processor:
         if first_task is not None:
             self.current_task = first_task
             self.current_task.start_time = 0
-            self.current_task.update_graph_data(self.simulator.graph,
-                                                current_time=0,
-                                                processor_number=self.number)
+            #self.current_task.update_graph_data(self.simulator.graph,
+            #                                    current_time=0,
+            #                                    processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.get_work()//self.speed, self))
         else:
@@ -170,6 +170,7 @@ class Processor:
             if self.tasks:
                 self.current_task = self.tasks.pop()
                 while self.current_task.get_work() == 0:
+                    self.current_task.start_time = self.current_time
                     self.tasks.extend(self.current_task.end_execute_task(
                         self.simulator.graph,
                         self.current_time,
@@ -230,6 +231,7 @@ class Processor:
             self.current_task = stolen_task
             # Todo: repetition
             while self.current_task.get_work() == 0:
+                self.current_task.start_time = self.current_time
                 self.tasks.extend(self.current_task.end_execute_task(
                     self.simulator.graph,
                     self.current_time,

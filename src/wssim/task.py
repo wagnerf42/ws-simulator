@@ -5,7 +5,7 @@ holding work of task and list of its children for the simulation.
 from copy import deepcopy
 import json
 import wssim
-from math import ceil, floor, log2, sqrt
+from math import ceil, floor, log2
 
 
 class Task:
@@ -54,7 +54,8 @@ class Task:
         """
         compute if we finish at given time with given speed
         """
-        return (finish_time - self.start_time) * processor_speed == self.get_work()
+        return (finish_time - self.start_time) *\
+                processor_speed == self.get_work()
 
     def update_graph_data(self, graph, current_time=0, processor_number=0):
         """
@@ -62,22 +63,17 @@ class Task:
         if the task does't exist, insert it
         else update the information
         """
-        if get_last_id_from_the_json_data(graph) >= self.id:
-            assert "thread_id" not in graph[self.id]
-            graph[self.id]["thread_id"] = processor_number
-            graph[self.id]["end_time"] = current_time * wssim.SVGTS
-            graph[self.id]["start_time"] = \
-                    (current_time - self.get_work()) * wssim.SVGTS
-            # besoin speed
-            assert self.get_work()* wssim.SVGTS == graph[self.id]["end_time"] - graph[self.id]["start_time"]
-            graph[self.id]["work"] = [self.type, self.get_work()]
-        else:
-            info = dict()
-            info["id"] = self.id
-            if hasattr(self, "children"):
-                info["children"] = [child.id for child in self.children]
+        info = dict()
+        info["id"] = self.id
+        if hasattr(self, "children"):
+            info["children"] = [child.id for child in self.children]
+        info["thread_id"] = processor_number
+        info["end_time"] = current_time * wssim.SVGTS
+        info["start_time"] = self.start_time * wssim.SVGTS
 
-            graph.insert(self.id, info)
+        assert self.start_time*wssim.SVGTS == info["start_time"]
+        info["work"] = [self.type, self.get_work()]
+        graph.append(info)
 
     def end_execute_task(self, graph, current_time, processor_number):
         """
@@ -118,9 +114,7 @@ class DivisibleLoadTask(Task):
             other_share = remaining_work - my_share
 
             new_child = DivisibleLoadTask(other_share)
-            new_child.update_graph_data(graph)
-
-            graph[self.id]["children"].append(new_child.id)
+            self.children.append(new_child)
 
             return current_time + my_share, new_child, 0
 
@@ -170,6 +164,7 @@ class DagTask(Task):
             child.update_dependent_task()
             if child.dependent_tasks_number == 0:
                 ready_children.append(child)
+
         return ready_children
 
     def update_dependent_task(self):
@@ -305,11 +300,11 @@ class AdaptiveTask(Task):
                                                    graph
                                                   )
 
-        add_tasks_to_json([l_child, waiting_task, r_child, reduce_task], graph)
-        graph[self.id]["children"] = \
-                [l_child.id, waiting_task.id]
+        #add_tasks_to_json([l_child, waiting_task, r_child, reduce_task], graph)
+        #graph[self.id]["children"] = \
+        #        [l_child.id, waiting_task.id]
         self.set_work_size(current_task_size)
-        self.children = [l_child]
+        self.children = [l_child, waiting_task]
 
         return self.start_time + self.get_work(), \
                 waiting_task, \
@@ -335,13 +330,57 @@ class AdaptiveTask(Task):
         """
         self.dependent_tasks_number -= 1
 
+    def update_graph_data(self, graph,
+                          current_time=0, processor_number=0):
+        """
+        update json data with the current tasks
+        if the task does't exist, insert it
+        else update the information
+        """
+        work = 0
+        current_block_number = 0
+        remaining_size = self.task_size
+        child_id = self.id
+        virtual_children = list()
+        while remaining_size > 0:
+            child = dict()
+            if work == 0:
+                child["id"] = self.id
+            else:
+                child["id"] = Task.tasks_number
+                Task.tasks_number += 1
+            child["start_time"] = (self.start_time + int(work)) * wssim.SVGTS
+            child["children"] = [ Task.tasks_number]
+            current_block_size = \
+                    min(block_size(self.initial_block_size,
+                                   current_block_number),
+                        remaining_size)
+            work += self.work_for_size(current_block_size)
+            child["work"] = [self.type, int(self.work_for_size(current_block_size)) * wssim.SVGTS ]
+            completed_size = self.task_size - remaining_size
+            if completed_size:
+                work += self.reduce_for_size(completed_size, current_block_size)
+                child["work"][1]  += self.reduce_for_size(completed_size, current_block_size) * wssim.SVGTS
+            child["end_time"] = child["start_time"] + child["work"][1]
+            child["thread_id"] = processor_number
+            remaining_size -= current_block_size
+            current_block_number += 1
+            virtual_children.append(child)
+
+        virtual_children[len(virtual_children)-1]["children"] = [child.id for child in self.children]
+
+        graph.extend(virtual_children)
+        #for child in virtual_children:
+        #    graph.append(child)
+
+
 
 def init_blk_size(initial_block_size_threshold, task_size):
     """
     """
     block_number = floor(
-                    log2(task_size / initial_block_size_threshold + 1)
-                    - 1)
+        log2(task_size / initial_block_size_threshold + 1)
+        - 1)
 
     initial_block_size = ceil(task_size / (2**(block_number + 1) - 1))
     return initial_block_size
@@ -354,22 +393,6 @@ def block_size(initial_block_size, block_number):
     """
     return ceil(initial_block_size * wssim.BLOCK_FACTOR**block_number)
 
-
-def get_last_id_from_the_json_data(graph):
-    """
-    get the last_id from thr json data
-    """
-    return len(graph) - 1
-
-
-def add_tasks_to_json(tasks, graph):
-    """
-    add tasks list to Json file
-    """
-    for task in tasks:
-        task.update_graph_data(graph)
-
-
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """
     create the task tree recursively
@@ -380,13 +403,13 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     else:
         # if total_work//2 < threshold:
         if total_work <= threshold:
-            current_task = DagTask(total_work)
+            current_task = DagTask(total_work, 1)
             current_task.dependent_tasks_number = 1
             return current_task
         else:
             if total_work//2 <= threshold:
 
-                current_task = DagTask(0)
+                current_task = DagTask(0,1)
                 l_child = init_task_tree(total_work=threshold,
                                          threshold=threshold)
                 r_child = init_task_tree(total_work=total_work-threshold,
@@ -397,7 +420,7 @@ def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
 
                 return current_task
             else:
-                current_task = DagTask(0)
+                current_task = DagTask(0,1)
                 l_child = init_task_tree(total_work=total_work//2,
                                          threshold=threshold)
                 r_child = init_task_tree(total_work=total_work-total_work//2,

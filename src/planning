@@ -1,5 +1,3 @@
-Ce qu'il faut finire vite fait.
-
 *Rediger le résultat que j'ai avec les différent prog pour une reproduction simplement les même simulation au cas de besoin. (ce vendredi.)
 
 * graphes vs divisble : 1 jour
@@ -37,8 +35,16 @@ Reste :
   -> sur le tri fusion adaptatif
   -> tracer le temps d'exec et idle time et waiting time
 
+---> mis en lumiere des problemes specifiques au tri fusion. en particulier decouper en 2 morceaux
+egaux augmente le travail
+---> changement d'exemple : solver (23/10/2018)
+
 * idee de preuve : borner le temps d'exec maintenant que l'on a les waiting time
    -> mettre une taille de blocs maximale ???? minimale ???
+   ajout d'un surcout de creation de tache
+   quelle politique pour les tailles de blocs ? (algo competitif)
+   on pourrait faire une analyse d'abord sans les waiting et idle time
+
 
 * "implementer" differents algos
 

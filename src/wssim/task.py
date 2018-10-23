@@ -192,6 +192,7 @@ class AdaptiveTask(Task):
         self.granularity = granularity
         self.initial_block_size = init_blk_size(granularity, self.task_size)
 #                 it will be intialised when we initialise tasks
+        self.completed_size = 0
 
     def get_work(self):
         """
@@ -207,7 +208,7 @@ class AdaptiveTask(Task):
                                    current_block_number),
                         remaining_size)
             work += self.work_for_size(current_block_size)
-            completed_size = self.task_size - remaining_size
+            completed_size = self.task_size - remaining_size + self.completed_size
             if completed_size:
                 work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
@@ -236,13 +237,15 @@ class AdaptiveTask(Task):
             current_block_size = min(block_size(self.initial_block_size, current_block_number),
                                      remaining_size)
             current_block_work = self.work_for_size(current_block_size)
-            completed_size = self.task_size - remaining_size
+            completed_size = self.task_size - remaining_size + self.completed_size
             if completed_size:
                 current_block_work += self.reduce_for_size(completed_size, current_block_size)
             remaining_size -= current_block_size
             task_size += current_block_size
             task_end_time += current_block_work
             current_block_number += 1
+
+        print("T{} size:{} work{}".format(self.id, task_size, task_end_time-self.start_time ))
 
         return task_end_time, task_size
 
@@ -276,6 +279,7 @@ class AdaptiveTask(Task):
         right_child.dependent_tasks_number = 1
         reduce_task.dependent_tasks_number = 2
 
+
         return left_child, right_child, waiting_task, reduce_task
 
     def split_work(self, current_time, granularity, graph=None):
@@ -305,6 +309,8 @@ class AdaptiveTask(Task):
         #        [l_child.id, waiting_task.id]
         self.set_work_size(current_task_size)
         self.children = [l_child, waiting_task]
+
+        l_child.completed_size = self.completed_size + current_task_size
 
         return self.start_time + self.get_work(), \
                 waiting_task, \
@@ -355,9 +361,9 @@ class AdaptiveTask(Task):
                     min(block_size(self.initial_block_size,
                                    current_block_number),
                         remaining_size)
-            work += self.work_for_size(current_block_size)
-            child["work"] = [self.type, int(self.work_for_size(current_block_size)) * wssim.SVGTS ]
-            completed_size = self.task_size - remaining_size
+            work += floor(self.work_for_size(current_block_size))
+            child["work"] = [self.type, floor(self.work_for_size(current_block_size)) * wssim.SVGTS ]
+            completed_size = self.task_size - remaining_size + self.completed_size
             if completed_size:
                 work += self.reduce_for_size(completed_size, current_block_size)
                 child["work"][1]  += self.reduce_for_size(completed_size, current_block_size) * wssim.SVGTS
@@ -368,7 +374,7 @@ class AdaptiveTask(Task):
             virtual_children.append(child)
 
         virtual_children[len(virtual_children)-1]["children"] = [child.id for child in self.children]
-
+        #assert work == self.get_work()
         graph.extend(virtual_children)
         #for child in virtual_children:
         #    graph.append(child)

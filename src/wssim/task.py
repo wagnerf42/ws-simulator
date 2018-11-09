@@ -245,7 +245,6 @@ class AdaptiveTask(Task):
             task_end_time += current_block_work
             current_block_number += 1
 
-        print("T{} size:{} work{}".format(self.id, task_size, task_end_time-self.start_time ))
 
         return task_end_time, task_size
 

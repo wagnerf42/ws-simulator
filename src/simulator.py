@@ -190,26 +190,27 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptive:
-                            #simulator.reset(work,
-                            #        AdaptiveTask(
-                            #            work,
-                            #            lambda left_size, right_size: DagTask(left_size + right_size),
-                            #            lambda size : size * log2(size)
-                            #            )
-                            #        )
-                            depth = 0
                             simulator.reset(work,
-                                            AdaptiveTask(work, arguments.local_granularity, 0,
-                                                         lambda left_size, right_size:
-                                                         AdaptiveTask(left_size + right_size, arguments.local_granularity, 2,
-                                                                      lambda left_size, right_size: DagTask(1, 3),
-                                                                      lambda size: size,
-                                                                      lambda n1, n2: 1
-                                                                     ),
-                                                         lambda size: size * log2(size),
-                                                         lambda n1, n2: n1 + n2,
-                                                        )
-                                           )
+                                    AdaptiveTask(
+                                        work, arguments.local_granularity, 0,
+                                        lambda left_size, right_size: DagTask(1,2),
+                                        lambda size : size + 10,
+                                        lambda n1, n2 : 1,
+                                        )
+                                    )
+                            depth = 0
+                            #simulator.reset(work,
+                            #                AdaptiveTask(work, arguments.local_granularity, 0,
+                            #                             lambda left_size, right_size:
+                            #                             AdaptiveTask(left_size + right_size, arguments.local_granularity, 2,
+                            #                                          lambda left_size, right_size: DagTask(1, 3),
+                            #                                          lambda size: size,
+                            #                                          lambda n1, n2: 1
+                            #                                         ),
+                            #                             lambda size: size * log2(size),
+                            #                             lambda n1, n2: n1 + n2,
+                            #                            )
+                            #               )
                         else:
                             simulator.reset(work, DivisibleLoadTask(work))
                             depth = 0

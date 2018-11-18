@@ -109,17 +109,18 @@ if __name__ == "__main__":
     i_b_s = int(sys.argv[3])
     phi = float(sys.argv[4])
 
-    cnbn, cfo, cso, min_overhead = overhead(phi, i_t_c, size, i_b_s, 0)
-    x = 0, 0, 0, min_overhead
-    print (i_t_c, cnbn, cfo, cso, min_overhead)
-    for i in range(max_block_number(phi, size, i_b_s)):
-        csbn, cfo, cso, cmo = overhead(phi, i_t_c, size, i_b_s, i)
-        print(cmo, min_overhead)
-        if min_overhead > cmo:
-            x = csbn, cfo, cso, cmo
-            min_overhead = cmo
-    print("min=", x[0], "i_b_s", i_b_s ,"", "max_block_number",
-          max_block_number(phi, size, i_b_s), "i_t_c:", i_t_c, min_overhead, cmo)
+    for i_b_s in range(1,i_b_s):
+        cnbn, cfo, cso, min_overhead = overhead(phi, i_t_c, size, i_b_s, 0)
+        x = 0, 0, 0, min_overhead
+        #print (i_t_c, cnbn, cfo, cso, min_overhead)
+        for i in range(max_block_number(phi, size, i_b_s)):
+            csbn, cfo, cso, cmo = overhead(phi, i_t_c, size, i_b_s, i)
+            #print(cmo, min_overhead)
+            if min_overhead > cmo:
+                x = csbn, cfo, cso, cmo
+                min_overhead = cmo
+        print("min=", x[0], "i_b_s", i_b_s ,"", "max_block_number",
+              max_block_number(phi, size, i_b_s), "i_t_c:", i_t_c, min_overhead, cmo)
 
   #  i_blk_s_t = int(sys.argv[4])
     #size = int(sys.argv[2])

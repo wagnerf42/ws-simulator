@@ -52,7 +52,11 @@ class Topology:
         """
         select a random target not unwanted_processor_number.
         """
+        if self.processors_number == 1:
+            print("one processor")
+            return 0
         victim = int(random() * (self.processors_number-1))
         if victim >= unwanted_processor_number:
             victim += 1
         return victim
+

@@ -72,7 +72,7 @@ class Task:
         info["start_time"] = self.start_time * wssim.SVGTS
 
         assert self.start_time*wssim.SVGTS == info["start_time"]
-        info["work"] = [self.type, self.get_work()]
+        info["work"] = [self.type, self.get_work() * wssim.SVGTS]
         graph.append(info)
 
     def end_execute_task(self, graph, current_time, processor_number):
@@ -396,7 +396,10 @@ def block_size(initial_block_size, block_number):
     return block size based on its number.
     we use "Golden ratio" to compute the size in each block
     """
-    return ceil(initial_block_size * wssim.BLOCK_FACTOR**block_number)
+    if block_number < 50000:
+        return ceil(initial_block_size * wssim.BLOCK_FACTOR**block_number)
+    else:
+        return ceil(initial_block_size * wssim.BLOCK_FACTOR**5)
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """
@@ -482,7 +485,7 @@ def read_task_tree_from_json(file_name):
 
     for task_index, task in enumerate(logs["tasks_logs"]):
         current_task = DagTask(
-            task["end_time"]-task["start_time"], task_id=task_index)
+            task["end_time"]-task["start_time"], 1, task_id=task_index )
         current_task.children_id = task["children"]
         current_task.start_time = task["start_time"]
         tasks.append(current_task)

@@ -97,7 +97,7 @@ def overhead(phi, init_task_cost, size, initial_block, stop_block_number):
     second_overhead = stop_block_number * init_task_cost + \
             remaining_size * init_task_cost / last_bock + last_bock
 
-    print("#", stop_block_number, first_overhead, second_overhead, max(first_overhead,second_overhead))
+    #print("#", stop_block_number, first_overhead, second_overhead, max(first_overhead,second_overhead))
     return stop_block_number, first_overhead, second_overhead, max(first_overhead,second_overhead)
 
 
@@ -109,16 +109,17 @@ if __name__ == "__main__":
     i_b_s = int(sys.argv[3])
     phi = float(sys.argv[4])
 
-    for c in range(100000):
-        _, _, _, min_overhead = overhead(phi, c, size, i_b_s, 0)
-        x = 0, 0, 0, min_overhead
-        for i in range(max_block_number(phi, size, i_b_s)):
-            csbn, cfo, cso, cmo = overhead(phi, c, size, i_b_s, i)
-            #print(cmo, max_overhead)
-            if min_overhead > cmo:
-                x = csbn, cfo, cso, cmo
-                min_overhead = cmo
-        print("min=", x[0], "i_b_s", i_b_s ,"", "max_block_number", max_block_number(phi, size, i_b_s), "i_t_c:", c, min_overhead, cmo)
+    cnbn, cfo, cso, min_overhead = overhead(phi, i_t_c, size, i_b_s, 0)
+    x = 0, 0, 0, min_overhead
+    print (i_t_c, cnbn, cfo, cso, min_overhead)
+    for i in range(max_block_number(phi, size, i_b_s)):
+        csbn, cfo, cso, cmo = overhead(phi, i_t_c, size, i_b_s, i)
+        print(cmo, min_overhead)
+        if min_overhead > cmo:
+            x = csbn, cfo, cso, cmo
+            min_overhead = cmo
+    print("min=", x[0], "i_b_s", i_b_s ,"", "max_block_number",
+          max_block_number(phi, size, i_b_s), "i_t_c:", i_t_c, min_overhead, cmo)
 
   #  i_blk_s_t = int(sys.argv[4])
     #size = int(sys.argv[2])

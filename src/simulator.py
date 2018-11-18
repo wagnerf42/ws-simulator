@@ -11,7 +11,7 @@ from random import seed
 from time import clock
 
 import wssim
-from wssim.task import Task, DagTask, DivisibleLoadTask, AdaptiveTask
+from wssim.task import Task, DagTask, DivisibleLoadTask, AdaptiveTask, init_blk_size
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factor
@@ -155,7 +155,7 @@ def main():
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
     \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time")
+    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time\tinitial_block_size")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -194,7 +194,7 @@ def main():
                                     AdaptiveTask(
                                         work, arguments.local_granularity, 0,
                                         lambda left_size, right_size: DagTask(1,2),
-                                        lambda size : size + 10,
+                                        lambda size : size + 3.97,
                                         lambda n1, n2 : 1,
                                         )
                                     )
@@ -229,7 +229,7 @@ def main():
                                           outfile, indent=4)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   probability, latency,
                                   simulator.steal_info["IWR"],
@@ -247,7 +247,8 @@ def main():
                                   simulator.steal_info["W1"],
                                   arguments.block_factor,
                                   simulator.steal_info["waiting_time"],
-                                  simulator.steal_info["idle_time"]
+                                  simulator.steal_info["idle_time"],
+                                  init_blk_size(arguments.local_granularity,work)
                                   # simulator.steal_info["beginning"]
                               ))
 

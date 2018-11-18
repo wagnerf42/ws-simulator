@@ -39,6 +39,12 @@ Reste :
 egaux augmente le travail
 ---> changement d'exemple : solver (23/10/2018)
 
+9/11/2018: expe reelle a fixe le surcout de creation a 16ns pour le solver
+=> en consequence une taille de blocs a 6400 garanti un surcout < 1/100 pour tout
+calcul -> donne une borne sup sur la taille des blocs.
+-> question: quelle politque avec cette info ???? -> faire des simus pour comparer differentes politiques
+(avec cout de creation de taches de 64)
+
 * idee de preuve : borner le temps d'exec maintenant que l'on a les waiting time
    -> mettre une taille de blocs maximale ???? minimale ???
    ajout d'un surcout de creation de tache

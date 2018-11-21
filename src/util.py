@@ -3,7 +3,7 @@
 class for different method without simulator
 """
 
-from math import ceil, log2, sqrt, floor
+from math import ceil, log2, sqrt, floor, log
 import sys
 
 N = 10000000
@@ -86,49 +86,51 @@ def overhead(phi, init_task_cost, size, initial_block, stop_block_number):
 
     completed_size = 0
     for i in range(stop_block_number):
-        completed_size +=  min(initial_block*phi**i, size-completed_size)
+        completed_size += min(initial_block*phi**i, size-completed_size)
         assert completed_size < size
 
     last_bock = initial_block * phi ** stop_block_number
-    first_overhead = stop_block_number * init_task_cost + last_bock
-
     remaining_size = size - completed_size
-
     second_overhead = stop_block_number * init_task_cost + \
-            remaining_size * init_task_cost / last_bock + last_bock
+            (remaining_size / last_bock) * init_task_cost + last_bock
 
-    #print("#", stop_block_number, first_overhead, second_overhead, max(first_overhead,second_overhead))
-    return stop_block_number, first_overhead, second_overhead, max(first_overhead,second_overhead)
+    return stop_block_number, second_overhead, stop_block_number * init_task_cost, (remaining_size / last_bock) * init_task_cost, last_bock
 
+def f(n, b, c):
+    """
+    """
+    x1 = (sqrt(c**2 + (4* log(2)**2*n/b + 4*log(2)**2 )*b*c) - c ) / ( 2*b*log(2) )
+    x2 = (-sqrt(c**2 + (4* log(2)**2*n/b + 4*log(2)**2 )*b*c) - c ) / ( 2*b*log(2) )
+    return log2(x1)
+
+def b(n, c, k):
+    """
+    """
+
+    return 2**(-2*k-1) * (sqrt( c * 2**(2*k + 2) * n - c**2 * 2**(k+2) + c**2*2**(2*k+2)) -c*2**(k+1) + c)
 
 
 if __name__ == "__main__":
-    print ("#init_task_cost, size, initial_block_size, stop_block_number, i_blk_s_t")
+    print("# init_task_cost, size, initial_block_size, \
+           stop_block_number, i_blk_s_t")
     i_t_c = int(sys.argv[1])
     size = int(sys.argv[2])
     i_b_s = int(sys.argv[3])
     phi = float(sys.argv[4])
 
-    for i_b_s in range(1,i_b_s):
-        cnbn, cfo, cso, min_overhead = overhead(phi, i_t_c, size, i_b_s, 0)
-        x = 0, 0, 0, min_overhead
-        #print (i_t_c, cnbn, cfo, cso, min_overhead)
+    for i_b_s in range(1, i_b_s):
+        cnbn, min_overhead, _, _, _ = overhead(phi, i_t_c, size, i_b_s, 0)
+        x = 0, min_overhead
         for i in range(max_block_number(phi, size, i_b_s)):
-            csbn, cfo, cso, cmo = overhead(phi, i_t_c, size, i_b_s, i)
-            #print(cmo, min_overhead)
+            csbn, cmo, _, _, _ = overhead(phi, i_t_c, size, i_b_s, i)
+            # print(cmo, min_overhead)
             if min_overhead > cmo:
-                x = csbn, cfo, cso, cmo
+                x = csbn, cmo
                 min_overhead = cmo
-        print("min=", x[0], "i_b_s", i_b_s ,"", "max_block_number",
-              max_block_number(phi, size, i_b_s), "i_t_c:", i_t_c, min_overhead, cmo)
-
-  #  i_blk_s_t = int(sys.argv[4])
-    #size = int(sys.argv[2])
-  #  values = set([])
-  #  for i in range(1,i_blk_s_t ):
-  #      values.add(init_blk_size(i, size))
-  #  print(size, "=", sorted(values))
-
-
-
+        _, overhead_formule, term1, term2, term3 = overhead(phi, i_t_c, size, i_b_s,
+                floor(f(size, i_b_s, i_t_c)+0.5))
+        init_blk_size_formule = b(size, i_t_c, x[0])
+        print(x[0], f(size, i_b_s, i_t_c), "ibs", i_b_s, "max_blk_nb",
+              max_block_number(phi, size, i_b_s), "i_t_c", i_t_c,
+              "overhead", min_overhead, "overhead_formule", overhead_formule, "t1", term1, "t2", term2, "t3", term3, "b formule", init_blk_size_formule)
 

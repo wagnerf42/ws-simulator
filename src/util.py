@@ -107,7 +107,9 @@ def b(n, c, k):
     """
     """
 
-    return 2**(-2*k-1) * (sqrt( c * 2**(2*k + 2) * n - c**2 * 2**(k+2) + c**2*2**(2*k+2)) -c*2**(k+1) + c)
+    #return 2**(-2*k-1) * (sqrt( c * 2**(2*k + 2) * n - c**2 * 2**(k+2) + c**2*2**(2*k+2)) -c*2**(k+1) + c)
+    return sqrt(c*n)/2**k
+
 
 
 if __name__ == "__main__":
@@ -130,7 +132,10 @@ if __name__ == "__main__":
         _, overhead_formule, term1, term2, term3 = overhead(phi, i_t_c, size, i_b_s,
                 floor(f(size, i_b_s, i_t_c)+0.5))
         init_blk_size_formule = b(size, i_t_c, x[0])
-        print(x[0], f(size, i_b_s, i_t_c), "ibs", i_b_s, "max_blk_nb",
+
+        _, overhead_formule1, term1, term2, term3 = overhead(phi, i_t_c, size, init_blk_size_formule,
+                floor(f(size, i_b_s, i_t_c)+0.5))
+        print(x[0], f(size, i_b_s, i_t_c), "ibs", i_b_s, "max_bnb",
               max_block_number(phi, size, i_b_s), "i_t_c", i_t_c,
-              "overhead", min_overhead, "overhead_formule", overhead_formule, "t1", term1, "t2", term2, "t3", term3, "b formule", init_blk_size_formule)
+              "ov", min_overhead, "ov_for", overhead_formule, init_blk_size_formule, overhead_formule1)
 

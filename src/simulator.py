@@ -11,10 +11,12 @@ from random import seed
 from time import clock
 
 import wssim
-from wssim.task import Task, DagTask, DivisibleLoadTask, AdaptiveTask, init_blk_size
+from wssim.task import Task, DagTask, \
+        DivisibleLoadTask, AdaptiveTask, init_blk_size
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
-from wssim import activate_logs, svg_time_scal, block_factor
+from wssim import activate_logs, svg_time_scal, block_factor, \
+        init_task_cost, geom_block_number
 from wssim.topology.cluster import Topology
 # from wssim.topology.clusters import Topology
 
@@ -109,6 +111,10 @@ def main():
                         help="svg time scal")
     parser.add_argument("-blk_factor", dest="block_factor", default=2,
                         type=float)
+    parser.add_argument("-itc", dest="init_task_cost", default=None,
+                        type=int)
+    parser.add_argument("-gbn", dest="geom_block_number", default=None,
+                        type=int)
 
 
     arguments = parser.parse_args()
@@ -118,6 +124,13 @@ def main():
 
     if arguments.debug:
         activate_logs()
+
+    if arguments.init_task_cost:
+        init_task_cost(arguments.init_task_cost)
+
+    if arguments.geom_block_number:
+        geom_block_number(arguments.geom_block_number)
+
 
     if arguments.json_file_out:
         svg_time_scal(arguments.svg_time_scal)
@@ -155,7 +168,7 @@ def main():
         arguments.runs))
     print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
     \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time\tinitial_block_size")
+    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time\tGeo_block_number")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -194,7 +207,7 @@ def main():
                                     AdaptiveTask(
                                         work, arguments.local_granularity, 0,
                                         lambda left_size, right_size: DagTask(1,2),
-                                        lambda size : size + 3.97,
+                                        lambda size : size + wssim.INIT_TASK_COST,
                                         lambda n1, n2 : 1,
                                         )
                                     )
@@ -248,7 +261,7 @@ def main():
                                   arguments.block_factor,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"],
-                                  init_blk_size(arguments.local_granularity,work)
+                                  wssim.GEOM_BLOCK_NUMBER
                                   # simulator.steal_info["beginning"]
                               ))
 

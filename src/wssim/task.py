@@ -5,7 +5,7 @@ holding work of task and list of its children for the simulation.
 from copy import deepcopy
 import json
 import wssim
-from math import ceil, floor, log2
+from math import ceil, floor, log2, sqrt
 
 
 class Task:
@@ -71,7 +71,7 @@ class Task:
         info["end_time"] = current_time * wssim.SVGTS
         info["start_time"] = self.start_time * wssim.SVGTS
 
-        assert self.start_time*wssim.SVGTS == info["start_time"]
+        assert self.start_time * wssim.SVGTS == info["start_time"]
         info["work"] = [self.type, self.get_work() * wssim.SVGTS]
         graph.append(info)
 
@@ -190,9 +190,45 @@ class AdaptiveTask(Task):
         self.work_for_size = work_for_size
         self.reduce_for_size = reduce_for_size
         self.granularity = granularity
-        self.initial_block_size = init_blk_size(granularity, self.task_size)
 #                 it will be intialised when we initialise tasks
         self.completed_size = 0
+
+
+        #self.log_init_blk()
+        self.log_init_blk(wssim.GEOM_BLOCK_NUMBER)
+        #self.best_init_blk()
+        #self.best_init_blk(wssim.GEOM_BLOCK_NUMBER)
+
+
+    def log_init_blk(self, geo_blk_number=None):
+        """
+        """
+        self.initial_block_size_threshold = log2(self.task_size)
+        self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
+        # self.initial_block_size = round(self.initial_block_size_threshold)
+        if geo_blk_number is None:
+            self.best_geo_blk_number = log2(sqrt(self.task_size * wssim.INIT_TASK_COST) / log2(self.task_size))
+        else:
+            self.best_geo_blk_number = geo_blk_number
+    #    print("size:{} initial_block_size:{} self.best_geo_blk_number:{}"
+    #          .format(self.task_size, self.initial_block_size,
+    #                  self.best_geo_blk_number))
+
+    def best_init_blk(self, geo_blk_number=None):
+        """
+        """
+        self.initial_block_size_threshold = sqrt(self.task_size * wssim.INIT_TASK_COST)
+        #self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
+        self.initial_block_size = round(self.initial_block_size_threshold)
+        if geo_blk_number is None:
+            self.best_geo_blk_number = 0
+        else:
+            self.best_geo_blk_number = geo_blk_number
+
+    #    print("size:{} initial_block_size:{} self.best_geo_blk_number:{}"
+    #          .format(self.task_size, self.initial_block_size,
+    #                  self.best_geo_blk_number))
+
 
     def get_work(self):
         """
@@ -205,7 +241,7 @@ class AdaptiveTask(Task):
         while remaining_size > 0:
             current_block_size = \
                     min(block_size(self.initial_block_size,
-                                   current_block_number),
+                                   current_block_number, self.best_geo_blk_number),
                         remaining_size)
             work += self.work_for_size(current_block_size)
             completed_size = self.task_size - remaining_size + self.completed_size
@@ -234,7 +270,7 @@ class AdaptiveTask(Task):
         task_end_time = self.start_time
         remaining_size = self.task_size
         while current_time > task_end_time:
-            current_block_size = min(block_size(self.initial_block_size, current_block_number),
+            current_block_size = min(block_size(self.initial_block_size, current_block_number, self.best_geo_blk_number),
                                      remaining_size)
             current_block_work = self.work_for_size(current_block_size)
             completed_size = self.task_size - remaining_size + self.completed_size
@@ -358,7 +394,7 @@ class AdaptiveTask(Task):
             child["children"] = [ Task.tasks_number]
             current_block_size = \
                     min(block_size(self.initial_block_size,
-                                   current_block_number),
+                                   current_block_number, self.best_geo_blk_number),
                         remaining_size)
             work += floor(self.work_for_size(current_block_size))
             child["work"] = [self.type, floor(self.work_for_size(current_block_size)) * wssim.SVGTS ]
@@ -391,15 +427,15 @@ def init_blk_size(initial_block_size_threshold, task_size):
     return initial_block_size
 
 
-def block_size(initial_block_size, block_number):
+def block_size(initial_block_size, block_number, geo_blk_number):
     """
     return block size based on its number.
     we use "Golden ratio" to compute the size in each block
     """
-    if block_number < 50000:
+    if block_number <  geo_blk_number:
         return ceil(initial_block_size * wssim.BLOCK_FACTOR**block_number)
     else:
-        return ceil(initial_block_size * wssim.BLOCK_FACTOR**5)
+        return ceil(initial_block_size * wssim.BLOCK_FACTOR ** geo_blk_number)
 
 def init_task_tree(total_work=0, threshold=0, file_name=None, task_id=0):
     """

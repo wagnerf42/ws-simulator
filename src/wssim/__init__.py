@@ -10,7 +10,8 @@ BLOCK_FACTOR = 2
 
 INIT_TASK_COST = 4
 
-GEOM_BLOCK_NUMBER = 0
+GEO_BLK_NUMBER = 0
+INIT_BLK_SIZE = None
 
 def activate_logs():
     """
@@ -46,10 +47,21 @@ def init_task_cost(init_task_cost):
     INIT_TASK_COST = init_task_cost
 
 
-def geom_block_number(geom_block_number):
+def g_geo_blk_number(geo_blk_number):
     """
-    update init tasks cost
-    default valus is 4
+    update geometric block number
+    default valus is 0
     """
-    global GEOM_BLOCK_NUMBER
-    GEOM_BLOCK_NUMBER = geom_block_number
+    global GEO_BLK_NUMBER
+    GEO_BLK_NUMBER = geo_blk_number
+    print("GEO_BLK_NUMBER:", GEO_BLK_NUMBER)
+
+
+def g_init_blk_size(init_blk_size):
+    """
+    update init blk task
+    default valus is None
+    """
+    global INIT_BLK_SIZE
+    INIT_BLK_SIZE = init_blk_size
+    print("INIT_BLK_SIZE:", INIT_BLK_SIZE)

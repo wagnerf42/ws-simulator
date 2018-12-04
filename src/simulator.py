@@ -16,7 +16,7 @@ from wssim.task import Task, DagTask, \
 from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factor, \
-        init_task_cost, geom_block_number
+        init_task_cost, g_geo_blk_number, g_init_blk_size
 from wssim.topology.cluster import Topology
 # from wssim.topology.clusters import Topology
 
@@ -113,9 +113,11 @@ def main():
                         type=float)
     parser.add_argument("-itc", dest="init_task_cost", default=None,
                         type=int)
-    parser.add_argument("-gbn", dest="geom_block_number", default=None,
+    parser.add_argument("-gbn", dest="geo_blk_number", default=None,
                         type=int)
-
+    parser.add_argument("-config_type", dest="config_type", default=3,
+                        type=int, help="0-sqrt_dynamic, 1-log_dynamic,\
+                        2-sqrt_static, 3-log_static")
 
     arguments = parser.parse_args()
 
@@ -127,10 +129,6 @@ def main():
 
     if arguments.init_task_cost:
         init_task_cost(arguments.init_task_cost)
-
-    if arguments.geom_block_number:
-        geom_block_number(arguments.geom_block_number)
-
 
     if arguments.json_file_out:
         svg_time_scal(arguments.svg_time_scal)
@@ -203,9 +201,16 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptive:
+                            geo_blk_nb = arguments.geo_blk_number
+                            if arguments.config_type == 3:
+                                g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
+                                g_geo_blk_number(round(log2(sqrt(work * wssim.INIT_TASK_COST) / log2(work))))
+                            elif arguments.config_type == 2:
+                                g_init_blk_size(init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work))
+                                g_geo_blk_number(0)
                             simulator.reset(work,
                                     AdaptiveTask(
-                                        work, arguments.local_granularity, 0,
+                                        work, arguments.local_granularity, 0, arguments.config_type, geo_blk_nb,
                                         lambda left_size, right_size: DagTask(1,2),
                                         lambda size : size + wssim.INIT_TASK_COST,
                                         lambda n1, n2 : 1,
@@ -261,7 +266,7 @@ def main():
                                   arguments.block_factor,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"],
-                                  wssim.GEOM_BLOCK_NUMBER
+                                  wssim.GEO_BLK_NUMBER
                                   # simulator.steal_info["beginning"]
                               ))
 

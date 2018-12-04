@@ -181,7 +181,7 @@ class AdaptiveTask(Task):
     when the owner processor receives a steal
     """
 
-    def __init__(self, task_size, granularity, task_type, reduction_tasks_factory, work_for_size, reduce_for_size):
+    def __init__(self, task_size, granularity, task_type, config_type, geo_blk_number, reduction_tasks_factory, work_for_size, reduce_for_size):
 
         super().__init__(task_size, task_type)
         self.children = []
@@ -192,42 +192,64 @@ class AdaptiveTask(Task):
         self.granularity = granularity
 #                 it will be intialised when we initialise tasks
         self.completed_size = 0
+        self.config_type = config_type
+        self.geo_blk_number = geo_blk_number
+        self.set_task_config(config_type, geo_blk_number)
 
 
-        #self.log_init_blk()
-        self.log_init_blk(wssim.GEOM_BLOCK_NUMBER)
-        #self.best_init_blk()
-        #self.best_init_blk(wssim.GEOM_BLOCK_NUMBER)
+    def set_task_config(self, config_type, geo_blk_number):
+        """
+        Configure task based on config_type
+        config_type = 0 : init_blk_size = sqrt(size*c) dependent on size of task (k = 0 if geo_blk_number is None)
+        config_type = 1 : init_blk_size = log2(size) dependent on size of task (Best k if geo_blk_number is None)
+        config_type = 2 : init_blk_size = static value
+        """
 
+        if config_type == 0:
+            self.sqrt_init_blk_dynamic(geo_blk_number)
+        elif config_type == 1:
+            self.log_init_blk_dynamic(geo_blk_number)
+        elif config_type == 2 or config_type == 3:
+            self.static_init_blk(geo_blk_number)
 
-    def log_init_blk(self, geo_blk_number=None):
+    def log_init_blk_dynamic(self, geo_blk_number=None):
         """
         """
         self.initial_block_size_threshold = log2(self.task_size)
         self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
-        # self.initial_block_size = round(self.initial_block_size_threshold)
         if geo_blk_number is None:
-            self.best_geo_blk_number = log2(sqrt(self.task_size * wssim.INIT_TASK_COST) / log2(self.task_size))
+            self.best_geo_blk_number = round(log2(sqrt(self.task_size * wssim.INIT_TASK_COST) / log2(self.task_size)))
         else:
             self.best_geo_blk_number = geo_blk_number
-    #    print("size:{} initial_block_size:{} self.best_geo_blk_number:{}"
-    #          .format(self.task_size, self.initial_block_size,
-    #                  self.best_geo_blk_number))
+        #print("size:{} initial_block_size: {} --> {} self.best_geo_blk_number:{}"
+        #      .format(self.task_size, self.initial_block_size_threshold, self.initial_block_size,
+        #      self.best_geo_blk_number))
 
-    def best_init_blk(self, geo_blk_number=None):
+    def static_init_blk(self, geo_blk_number=None):
+        """
+        """
+        self.initial_block_size = wssim.INIT_BLK_SIZE
+        if geo_blk_number is None:
+            self.best_geo_blk_number = wssim.GEO_BLK_NUMBER
+        else:
+            self.best_geo_blk_number = geo_blk_number
+        #print("size:{} initial_block_size: {} self.best_geo_blk_number:{}"
+        #        .format(self.task_size, self.initial_block_size,
+        #              self.best_geo_blk_number))
+
+    def sqrt_init_blk_dynamic(self, geo_blk_number=None):
         """
         """
         self.initial_block_size_threshold = sqrt(self.task_size * wssim.INIT_TASK_COST)
-        #self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
-        self.initial_block_size = round(self.initial_block_size_threshold)
+        self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
         if geo_blk_number is None:
             self.best_geo_blk_number = 0
         else:
             self.best_geo_blk_number = geo_blk_number
 
-    #    print("size:{} initial_block_size:{} self.best_geo_blk_number:{}"
-    #          .format(self.task_size, self.initial_block_size,
-    #                  self.best_geo_blk_number))
+        #print("size:{} initial_block_size: {} --> {} self.best_geo_blk_number:{}"
+        #      .format(self.task_size, self.initial_block_size_threshold, self.initial_block_size,
+        #              self.best_geo_blk_number))
 
 
     def get_work(self):
@@ -291,11 +313,13 @@ class AdaptiveTask(Task):
         """
 
         left_child = AdaptiveTask(left_size, self.granularity, self.type,
+                                  self.config_type, self.geo_blk_number,
                                   self.reduction_tasks_factory,
                                   self.work_for_size, self.reduce_for_size)
         waiting_task = DagTask(waiting_time, 1)
 
         right_child = AdaptiveTask(right_size, self.granularity, self.type,
+                                   self.config_type, self.geo_blk_number,
                                    self.reduction_tasks_factory,
                                    self.work_for_size, self.reduce_for_size)
 
@@ -424,6 +448,9 @@ def init_blk_size(initial_block_size_threshold, task_size):
         - 1)
 
     initial_block_size = ceil(task_size / (2**(block_number + 1) - 1))
+
+    print("initial_block_size: {} --> {}"
+          .format(initial_block_size_threshold, initial_block_size))
     return initial_block_size
 
 

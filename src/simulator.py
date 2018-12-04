@@ -202,15 +202,20 @@ def main():
                             simulator.reset(work, first_task)
                         elif arguments.adaptive:
                             geo_blk_nb = arguments.geo_blk_number
+                            geo_blk_max = None
                             if arguments.config_type == 3:
                                 g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
                                 g_geo_blk_number(round(log2(sqrt(work * wssim.INIT_TASK_COST) / log2(work))))
                             elif arguments.config_type == 2:
                                 g_init_blk_size(init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work))
                                 g_geo_blk_number(0)
+                            elif arguments.config_type == 4:
+                                g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
+                                geo_blk_max = init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work)
+
                             simulator.reset(work,
                                     AdaptiveTask(
-                                        work, arguments.local_granularity, 0, arguments.config_type, geo_blk_nb,
+                                        work, geo_blk_max, 0, arguments.config_type, geo_blk_nb,
                                         lambda left_size, right_size: DagTask(1,2),
                                         lambda size : size + wssim.INIT_TASK_COST,
                                         lambda n1, n2 : 1,

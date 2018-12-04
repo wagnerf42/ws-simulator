@@ -10,7 +10,7 @@ BLOCK_FACTOR = 2
 
 INIT_TASK_COST = 4
 
-GEO_BLK_NUMBER = 0
+GEO_BLK_NUMBER = None
 INIT_BLK_SIZE = None
 
 def activate_logs():

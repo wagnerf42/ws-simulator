@@ -64,4 +64,3 @@ def g_init_blk_size(init_blk_size):
     """
     global INIT_BLK_SIZE
     INIT_BLK_SIZE = init_blk_size
-    print("INIT_BLK_SIZE:", INIT_BLK_SIZE)

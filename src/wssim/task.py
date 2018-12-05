@@ -212,7 +212,7 @@ class AdaptiveTask(Task):
         elif config_type == 2 or config_type == 3 or config_type == 4:
             self.static_init_blk(geo_blk_number)
         elif config_type == 5:
-            self.blk_max_dynamic(geo_blk_number)
+            self.min_max_dynamic(geo_blk_number)
 
     def log_init_blk_dynamic(self, geo_blk_number=None):
         """
@@ -227,7 +227,7 @@ class AdaptiveTask(Task):
         #      .format(self.task_size, self.initial_block_size_threshold, self.initial_block_size,
         #      self.best_geo_blk_number))
 
-    def blk_max_dynamic(self, geo_blk_number=None):
+    def min_max_dynamic(self, geo_blk_number=None):
         """
         """
         self.best_geo_blk_number = None

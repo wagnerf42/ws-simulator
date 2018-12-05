@@ -54,6 +54,33 @@ def update_graph(tasks, graph):
         update_graph(child, graph)
 
 
+def display_config_type(config_type):
+    """
+    display config type based on input
+    """
+    if config_type == SQRT_DYNAMIC:
+        print("#SQRT_DYNAMIC")
+    elif config_type == LOG_DYNAMIC:
+        print("#LOG_DYNAMIC")
+    elif config_type == SQRT_STATIC:
+        print("#SQRT_STATIC")
+    elif config_type == LOG_STATIC:
+        print("#LOG_STATIC")
+    elif config_type == MIN_MAX_STATIC:
+        print("#MIN_MAX_STATIC")
+    elif config_type == MIN_MAX_DYNAMIC:
+        print("#MIN_MAX_DYNAMIC")
+
+
+
+SQRT_DYNAMIC = 0
+LOG_DYNAMIC = 1
+SQRT_STATIC = 2
+LOG_STATIC = 3
+MIN_MAX_STATIC = 4
+MIN_MAX_DYNAMIC = 5
+
+
 def main():
     """
     main program to start Simulation
@@ -161,12 +188,19 @@ def main():
         else:
             works = list(power_range(*arguments.iws_config))
 
+    geo_blk_nb = arguments.geo_blk_number
+    g_geo_blk_number(geo_blk_nb)
+    geo_blk_max = None
+    if arguments.config_type:
+        display_config_type(arguments.config_type)
+
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
-    print("#prb\tR-l\tISR\tESR\trunTime\tprocessors\
+    print("#runTime\tprocessors\
     \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tW0\tW1\tblock_factory\twaiting-time\tidle_time\tGeo_block_number")
+    \trGranularity\tW0\tblock_factory\tinit_task_cost\twaiting-time\
+    \tidle_time\ttask_creation_cost\tGeo_block_number\tinit_blk_size\tmax_blk_size")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -182,10 +216,10 @@ def main():
                     simulator.topology.update_granularity(
                         arguments.local_granularity,
                         arguments.remote_granularity, threshold)
-                    for _ in range(arguments.runs):
+                    for run_num in range(arguments.runs):
                         Task.tasks_number = 0
-                        if arguments.tasks or arguments.json_file_in is not None:
-
+                        if arguments.tasks or \
+                                arguments.json_file_in is not None:
                             if arguments.json_file_in is not None:
                                 first_task, work, depth, logs = init_task_tree(file_name=arguments.json_file_in)
                                 if arguments.json_file_out:
@@ -201,17 +235,22 @@ def main():
 
                             simulator.reset(work, first_task)
                         elif arguments.adaptive:
-                            geo_blk_nb = arguments.geo_blk_number
-                            geo_blk_max = None
-                            if arguments.config_type == 3:
+                            if arguments.config_type == LOG_STATIC:
                                 g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
-                                g_geo_blk_number(round(log2(sqrt(work * wssim.INIT_TASK_COST) / log2(work))))
-                            elif arguments.config_type == 2:
+                                if arguments.geo_blk_number is None:
+                                    g_geo_blk_number(round(log2(sqrt(work * wssim.INIT_TASK_COST) / log2(work))))
+
+                            elif arguments.config_type == SQRT_STATIC:
                                 g_init_blk_size(init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work))
-                                g_geo_blk_number(0)
-                            elif arguments.config_type == 4:
+                                if arguments.geo_blk_number is None:
+                                    g_geo_blk_number(0)
+
+                            elif arguments.config_type == MIN_MAX_STATIC:
                                 g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
                                 geo_blk_max = init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work)
+
+                            elif arguments.config_type == MIN_MAX_DYNAMIC:
+                                g_geo_blk_number(None)
 
                             simulator.reset(work,
                                     AdaptiveTask(
@@ -252,12 +291,13 @@ def main():
                                           outfile, indent=4)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
-                                  probability, latency,
-                                  simulator.steal_info["IWR"],
+                                  #probability,
+                                  #latency,
+                                  #simulator.steal_info["IWR"],
                                   # simulator.steal_info["SIWR"],
-                                  simulator.steal_info["EWR"],
+                                  #simulator.steal_info["EWR"],
                                   # simulator.steal_info["SEWR"],
                                   simulator.time,
                                   arguments.processors,
@@ -267,11 +307,15 @@ def main():
                                   arguments.local_granularity,
                                   arguments.remote_granularity,
                                   simulator.steal_info["W0"],
-                                  simulator.steal_info["W1"],
+                                  #simulator.steal_info["W1"],
                                   arguments.block_factor,
+                                  wssim.INIT_TASK_COST,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"],
-                                  wssim.GEO_BLK_NUMBER
+                                  len(simulator.graph)*wssim.INIT_TASK_COST,
+                                  wssim.GEO_BLK_NUMBER,
+                                  wssim.INIT_BLK_SIZE,
+                                  geo_blk_max
                                   # simulator.steal_info["beginning"]
                               ))
 

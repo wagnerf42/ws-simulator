@@ -191,8 +191,7 @@ def main():
     geo_blk_nb = arguments.geo_blk_number
     g_geo_blk_number(geo_blk_nb)
     geo_blk_max = None
-    if arguments.config_type:
-        display_config_type(arguments.config_type)
+    display_config_type(arguments.config_type)
 
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
@@ -236,7 +235,7 @@ def main():
                             simulator.reset(work, first_task)
                         elif arguments.adaptive:
                             if arguments.config_type == LOG_STATIC:
-                                g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
+                                g_init_blk_size(init_blk_size(log2(work), work))
                                 if arguments.geo_blk_number is None:
                                     g_geo_blk_number(round(log2(sqrt(work * wssim.INIT_TASK_COST) / log2(work))))
 
@@ -246,7 +245,7 @@ def main():
                                     g_geo_blk_number(0)
 
                             elif arguments.config_type == MIN_MAX_STATIC:
-                                g_init_blk_size(init_blk_size(log2(work*wssim.INIT_TASK_COST), work))
+                                g_init_blk_size(init_blk_size(log2(work), work))
                                 geo_blk_max = init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work)
 
                             elif arguments.config_type == MIN_MAX_DYNAMIC:

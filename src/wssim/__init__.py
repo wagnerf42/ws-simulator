@@ -54,7 +54,6 @@ def g_geo_blk_number(geo_blk_number):
     """
     global GEO_BLK_NUMBER
     GEO_BLK_NUMBER = geo_blk_number
-    print("GEO_BLK_NUMBER:", GEO_BLK_NUMBER)
 
 
 def g_init_blk_size(init_blk_size):

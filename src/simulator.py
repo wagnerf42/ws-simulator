@@ -142,6 +142,10 @@ def main():
                         type=int)
     parser.add_argument("-gbn", dest="geo_blk_number", default=None,
                         type=int)
+    parser.add_argument("-ibs", dest="init_bs", default=100,
+                        type=int)
+    parser.add_argument("-mbs", dest="max_bs", default=10000,
+                        type=int)
     parser.add_argument("-config_type", dest="config_type", default=3,
                         type=int, help="0-sqrt_dynamic, 1-log_dynamic,\
                         2-sqrt_static, 3-log_static")
@@ -196,10 +200,9 @@ def main():
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
-    print("#runTime\tprocessors\
-    \tinput-work-size\tdepth\ttaskThreshold\tlGranularity\
-    \trGranularity\tW0\tblock_factory\tinit_task_cost\twaiting-time\
-    \tidle_time\ttask_creation_cost\tGeo_block_number\tinit_blk_size\tmax_blk_size")
+    print("#1:runTime\t2:processors\t3:input-work-size\t4:taskThreshold\t5:lGranularity\
+          \t6:W0\t7:block_factory\t8:init_task_cost\t9:waiting-time\
+          \t10:idle_time\t11:Geo_block_number\t12:init_blk_size\t13:max_blk_size")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -245,8 +248,10 @@ def main():
                                     g_geo_blk_number(0)
 
                             elif arguments.config_type == MIN_MAX_STATIC:
-                                g_init_blk_size(init_blk_size(log2(work), work))
-                                geo_blk_max = init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work)
+                                g_init_blk_size(arguments.init_bs)
+                                #geo_blk_max = init_blk_size(sqrt(work*wssim.INIT_TASK_COST), work)
+                                #g_init_blk_size(arguments.init_bs)
+                                geo_blk_max = round(arguments.max_bs)
 
                             elif arguments.config_type == MIN_MAX_DYNAMIC:
                                 g_geo_blk_number(None)
@@ -289,8 +294,8 @@ def main():
                                 json.dump(json_data,
                                           outfile, indent=4)
 
-                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}\t{}"
+                        print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
+                              \t{}\t{}\t{}\t{}"
                               .format(
                                   #probability,
                                   #latency,
@@ -301,22 +306,20 @@ def main():
                                   simulator.time,
                                   arguments.processors,
                                   work,
-                                  depth,
                                   threshold,
                                   arguments.local_granularity,
-                                  arguments.remote_granularity,
                                   simulator.steal_info["W0"],
                                   #simulator.steal_info["W1"],
                                   arguments.block_factor,
                                   wssim.INIT_TASK_COST,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"],
-                                  len(simulator.graph)*wssim.INIT_TASK_COST,
                                   wssim.GEO_BLK_NUMBER,
                                   wssim.INIT_BLK_SIZE,
                                   geo_blk_max
                                   # simulator.steal_info["beginning"]
                               ))
+
 
 
 if __name__ == "__main__":

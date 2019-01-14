@@ -231,10 +231,11 @@ class AdaptiveTask(Task):
         """
         """
         self.best_geo_blk_number = None
-        self.initial_block_size_threshold = log2(self.task_size)
+        self.initial_block_size = floor(log2(self.task_size))
         #print(log2(self.task_size))
-        self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
+        #self.initial_block_size = init_blk_size(self.initial_block_size_threshold, self.task_size)
         self.geo_blk_max =  round(sqrt(self.task_size * wssim.INIT_TASK_COST))
+        #print(" self.initial_block_size: ", self.initial_block_size, self.geo_blk_max)
         #print("size:{} initial_block_size: {} self.geo_blk_max:{}"
         #        .format(self.task_size, self.initial_block_size,
         #              self.geo_blk_max))

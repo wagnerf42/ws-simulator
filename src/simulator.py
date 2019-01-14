@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3.6
 """
 Simulation System configuration
 """
@@ -17,8 +17,8 @@ from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factor, \
         init_task_cost, g_geo_blk_number, g_init_blk_size
-from wssim.topology.cluster import Topology
-# from wssim.topology.clusters import Topology
+###from wssim.topology.cluster import Topology
+from wssim.topology.clusters import Topology
 
 
 def floating_range(start, end, step):
@@ -200,9 +200,9 @@ def main():
     print("#PROCESSORS: {}, RUNS: {}".format(
         arguments.processors,
         arguments.runs))
-    print("#1:runTime\t2:processors\t3:input-work-size\t4:taskThreshold\t5:lGranularity\
-          \t6:W0\t7:block_factory\t8:init_task_cost\t9:waiting-time\
-          \t10:idle_time\t11:Geo_block_number\t12:init_blk_size\t13:max_blk_size")
+    print("#1:proba\t2:latency\t3:runTime\t4:processors\t5:input-work-size\t6:taskThreshold\t7:lGranularity\
+            \t8:W0\t9:W1\t10:block_factory\t11:init_task_cost\t12:waiting-time\
+            \t13:idle_time\t14:Geo_block_number\t15:init_blk_size\t16:max_blk_size\t17:IWR\t18:EWR")
 
     for work in works:
         for threshold in arguments.task_threshold:
@@ -211,8 +211,8 @@ def main():
                 simulator.topology.remote_steal_probability = probability
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    # arguments.local_granularity = 2
-                    # arguments.remote_granularity = 2*latency
+                    arguments.local_granularity = 2
+                    arguments.remote_granularity = 2*latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold
                     simulator.topology.update_granularity(
@@ -295,13 +295,11 @@ def main():
                                           outfile, indent=4)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
-                                  #probability,
-                                  #latency,
-                                  #simulator.steal_info["IWR"],
+                                  probability,
+                                  latency,
                                   # simulator.steal_info["SIWR"],
-                                  #simulator.steal_info["EWR"],
                                   # simulator.steal_info["SEWR"],
                                   simulator.time,
                                   arguments.processors,
@@ -309,16 +307,25 @@ def main():
                                   threshold,
                                   arguments.local_granularity,
                                   simulator.steal_info["W0"],
-                                  #simulator.steal_info["W1"],
+                                  simulator.steal_info["W1"],
                                   arguments.block_factor,
                                   wssim.INIT_TASK_COST,
                                   simulator.steal_info["waiting_time"],
                                   simulator.steal_info["idle_time"],
                                   wssim.GEO_BLK_NUMBER,
                                   wssim.INIT_BLK_SIZE,
-                                  geo_blk_max
+                                  geo_blk_max,
+                                  simulator.steal_info["IWR"],
                                   # simulator.steal_info["beginning"]
+                                  simulator.steal_info["EWR"]
                               ))
+
+                        #for i, j in simulator.Isteal_data.items():
+                        #    print(i," ", j)
+
+                        #for i, j in simulator.Esteal_data.items():
+                        #    print(i," ",j)
+
 
 
 

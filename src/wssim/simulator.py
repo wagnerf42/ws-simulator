@@ -37,6 +37,8 @@ class Simulator:
         self.valid_events = dict()
         self.init_processors(processors_number)
         self.steal_info = defaultdict(int)
+        self.Isteal_data = defaultdict(int)
+        self.Esteal_data = defaultdict(int)
         if __debug__:
             if self.log_file is not None:
                 self.platform_definition_logger(2)

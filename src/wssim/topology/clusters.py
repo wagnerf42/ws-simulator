@@ -1,9 +1,7 @@
-#!/usr/bin/env python3.5
 """
 topology related functions for 2 clusters.
 """
 from random import uniform, randint
-
 
 class Topology:
     """

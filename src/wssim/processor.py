@@ -98,7 +98,7 @@ class Processor:
         """
         self.current_time = self.simulator.time
         reply_time = self.simulator.communication_end_time(self, stealer)
-        self.simulator.steal_info["idle_time"] += self.simulator.topology.latency
+        self.simulator.steal_info["idle_time"] += self.simulator.topology.distance(stealer.number, self.number)
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
@@ -150,7 +150,7 @@ class Processor:
         self.current_time = self.simulator.time
         if self.current_task:
             assert self.current_task.finishes_at(self.current_time, self.speed)
-            if self.current_task.type == 1:
+            if self.current_task.type == -1:
                 self.simulator.steal_info["waiting_time"] += \
                         self.current_task.get_work()
             elif self.cluster == 0:
@@ -208,11 +208,13 @@ class Processor:
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
-        self.simulator.steal_info["idle_time"] += self.simulator.topology.latency
+        self.simulator.steal_info["idle_time"] += self.simulator.topology.distance(victim.number, self.number)
         if self.cluster == victim.cluster:
             self.simulator.steal_info["IWR"] += 1
+            self.simulator.Isteal_data[self.current_time] +=1
         else:
             self.simulator.steal_info["EWR"] += 1
+            self.simulator.Esteal_data[self.current_time] +=1
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,

@@ -5,6 +5,7 @@ holding processors states for the simulation.
 
 from collections import deque
 
+from math import floor, log2, sqrt, exp
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
 
 
@@ -45,6 +46,7 @@ class Processor:
             #                                    processor_number=self.number)
             self.simulator.add_event(IdleEvent(
                 self.current_task.get_work()//self.speed, self))
+            self.simulator.steal_info["WI0"] += self.current_task.get_work()
         else:
             self.simulator.add_event(IdleEvent(0, self))
 
@@ -80,6 +82,7 @@ class Processor:
             splitting_result = \
                     self.current_task.split_work(self.current_time,
                                                  granularity,
+                                                 remote_steal = (self.cluster != stealer.cluster),
                                                  graph=self.simulator.graph
                                                  )
 
@@ -102,7 +105,6 @@ class Processor:
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
-
         if self.current_time >= self.network_time:
             # we can use network and we have enough work to send
             stolen_task = self.get_part_of_work_if_exist(stealer)
@@ -113,6 +115,24 @@ class Processor:
                 else:
                     self.simulator.steal_info["SEWR"] += 1
                     self.simulator.steal_info["WE"] += stolen_task.get_work()
+                    #print("P", self.number, "answer P", stealer.number, "at ", self.current_time, "direction C", stealer.cluster)
+                    #print("%cluster:{}". format( 100*stolen_task.get_work()/self.simulator.steal_info["WI0"] )  )
+                    #assert(False)
+                    if stealer.cluster == 0:
+                        self.simulator.steal_info["WI1"] -= \
+                            stolen_task.get_work()
+                        self.simulator.steal_info["WI0"] += \
+                            stolen_task.get_work()
+                    if stealer.cluster == 1:
+                        self.simulator.steal_info["WI0"] -= \
+                            stolen_task.get_work()
+                        self.simulator.steal_info["WI1"] += \
+                            stolen_task.get_work()
+                    #phi1 = (self.simulator.steal_info["WI0"] + self.simulator.steal_info["WI1"])**2
+                    #phi2 = self.simulator.steal_info["WI1"]**2 - (self.simulator.steal_info["WI1"]+self.simulator.steal_info["WI0"])**2/2
+                    #print( self.simulator.time, self.simulator.steal_info["WI0"],\
+                    #      self.simulator.steal_info["WI1"], stolen_task.get_work(), )
+                    #print("W0:",  self.simulator.steal_info["WI0"], "W1:", self.simulator.steal_info["WI1"], "Work stolen", stolen_task.get_work() )
 
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
@@ -138,7 +158,7 @@ class Processor:
             StealAnswerEvent(reply_time, stealer, self, stolen_task)
         )
 
-        if __debug__:
+        if __debug__ and self.cluster != stealer.cluster :
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(
                     self, stealer, data="Response")
@@ -156,9 +176,13 @@ class Processor:
             elif self.cluster == 0:
                 self.simulator.steal_info["W0"] += \
                         self.current_task.get_work()
+                self.simulator.steal_info["WI0"] -= \
+                    self.current_task.get_work()
             else:
                 self.simulator.steal_info["W1"] += \
                         self.current_task.get_work()
+                self.simulator.steal_info["WI1"] -= \
+                    self.current_task.get_work()
 
             self.simulator.total_work -= self.current_task.get_work()
             ready_tasks = self.current_task.end_execute_task(
@@ -190,7 +214,7 @@ class Processor:
 
         if self.current_task is None:
             self.start_stealing()
-            if __debug__:
+            if __debug__ :
                 if self.simulator.log_file is not None:
                     self.simulator.logger.update_processor_state(
                         self, new_state="Stealing")
@@ -213,12 +237,19 @@ class Processor:
             self.simulator.steal_info["IWR"] += 1
             self.simulator.Isteal_data[self.current_time] +=1
         else:
+            #print("time : ", self.current_time)
+            #print("P", self.number, "steal P", victim.number, "at ", self.current_time, "direction C", victim.cluster)
+            #print("W0:",  self.simulator.steal_info["WI0"], "W1:", self.simulator.steal_info["WI1"] )
             self.simulator.steal_info["EWR"] += 1
             self.simulator.Esteal_data[self.current_time] +=1
-        if __debug__:
+        if __debug__ :
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
+        if __debug__ and self.cluster != victim.cluster:
+            if self.simulator.log_file is not None:
+                self.simulator.logger.update_processor_state(
+                    self, new_state="StealingE")
 
     def steal_answer(self, stolen_task, victim):
         """

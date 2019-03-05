@@ -6,7 +6,7 @@ Simulation System configuration
 import json
 import argparse
 import operator
-from math import floor, log2, sqrt
+from math import floor, log2, sqrt, exp
 from random import seed
 from time import clock
 
@@ -17,7 +17,7 @@ from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factor, \
         init_task_cost, g_geo_blk_number, g_init_blk_size
-###from wssim.topology.cluster import Topology
+#from wssim.topology.cluster import Topology
 from wssim.topology.clusters import Topology
 
 
@@ -134,7 +134,7 @@ def main():
                         help="activate simultaneously steal")
     parser.add_argument("-json_in", dest="json_file_in", default=None)
     parser.add_argument("-json_out", dest="json_file_out", default=None)
-    parser.add_argument("-svgts", dest="svg_time_scal", default=100, type=int,
+    parser.add_argument("-svgts", dest="svg_time_scal", default=1, type=int,
                         help="svg time scal")
     parser.add_argument("-blk_factor", dest="block_factor", default=2,
                         type=float)
@@ -212,7 +212,7 @@ def main():
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
                     arguments.local_granularity = 2
-                    arguments.remote_granularity = 2*latency
+                    arguments.remote_granularity = latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold
                     simulator.topology.update_granularity(

@@ -99,7 +99,7 @@ class DivisibleLoadTask(Task):
         """
         return self.task_size
 
-    def split_work(self, current_time, granularity, graph=None):
+    def split_work(self, current_time, granularity, remote_steal=False, graph=None):
         """
         cut task in two if we have enough remaining work
         update update the work on the current task
@@ -108,8 +108,12 @@ class DivisibleLoadTask(Task):
         computed_work = self.get_computed_work(current_time)
         remaining_work = self.get_work() - computed_work
         assert remaining_work >= 0
-        my_share = remaining_work//2
-        if my_share > granularity:
+        if remote_steal:
+            my_share = remaining_work//2
+        else:
+            my_share = remaining_work//2
+
+        if my_share >= granularity:
             self.set_work_size(computed_work + my_share)
             other_share = remaining_work - my_share
 

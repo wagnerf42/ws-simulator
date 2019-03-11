@@ -3,6 +3,7 @@ provides Simulator class containing the global simulation state.
 """
 from heapq import heappush, heappop
 from collections import defaultdict
+from random import randint
 from wssim.processor import Processor
 from wssim.logger import Logger
 from wssim.task import Task
@@ -61,6 +62,12 @@ class Simulator:
             else:
                 processor.reset(first_task=first_task)
                 self.add_active_processor(processor)
+
+            if self.topology.victim_selection_strategy == 1:
+                processor.steal_attempt_max = self.topology.steal_attempt_max
+            elif self.topology.victim_selection_strategy == 2:
+                processor.steal_attempt_max =  randint(self.topology.steal_attempt_min,\
+                                                  self.topology.steal_attempt_max)
 
     def run(self):
         """

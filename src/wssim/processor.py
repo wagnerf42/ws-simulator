@@ -4,10 +4,8 @@ holding processors states for the simulation.
 """
 
 from collections import deque
-
-from math import floor, log2, sqrt, exp
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-
+from random import uniform, randint
 
 class Processor:
     """
@@ -29,6 +27,9 @@ class Processor:
         self.current_task = None
         self.cluster = cluster
         self.tasks = deque()
+        self.steal_attempt_number = 0
+        self.steal_attempt_max = 1
+        #self.steal_attempt_max =  randint(6, 12)
 
     def reset(self, first_task=None):
         """
@@ -226,7 +227,7 @@ class Processor:
         # victim = self.simulator.random_victim_not(self.number)
         self.simulator.rm_active_processor(self)
         victim = self.simulator.processors[
-            self.simulator.topology.select_victim_not(self.number)
+            self.simulator.topology.select_victim_not(self)
         ]
         steal_time = self.simulator.communication_end_time(self, victim)
         self.simulator.add_event(
@@ -272,7 +273,9 @@ class Processor:
                 assert self.tasks
                 self.current_task = self.tasks.pop()
             assert self.current_task.get_work()
+            self.steal_attempt_number = 0
             self.current_task.start_time = self.current_time
+            self.steal_attempt_number = 0
             becoming_idle_time = self.current_time + \
                 self.current_task.get_work()//self.speed
             self.simulator.add_event(IdleEvent(becoming_idle_time, self))

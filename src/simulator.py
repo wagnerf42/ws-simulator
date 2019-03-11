@@ -87,13 +87,33 @@ def main():
     """
     parser = argparse.ArgumentParser(
         description="simulate work stealing algorithm")
+
     parser.add_argument("-rsp", dest="remote_steal_probability",
                         default=0.5, type=float,
                         help="probability of stealing remotely")
+
+    parser.add_argument("-samax", dest="steal_attempt_max",
+                        default=1, type=int,
+                        help="max internal steal attempts")
+
+    parser.add_argument("-samin", dest="steal_attempt_min",
+                        default=1, type=int,
+                        help="mix internal steal attempts (used when vss=2)")
+
+    parser.add_argument("-vss", dest="victim_selection_strategy",
+                        default=0, type=int,
+                        help="victim_selection_strategy, (0:probabilist, 1:static)")
+
+    parser.add_argument('-samaxconf', nargs=3, dest="steal_attemption_config",
+                        type=int, help="interval config of \
+                        stealing attemption max ,\
+                        (-samaxconf min_sam max_sam step)")
+
     parser.add_argument('-rspconf', nargs=3, dest="probabilities_config",
                         type=float, help="interval config of \
                         stealing remotely probabilities ,\
                         (-rspconf min_probability max_probability step)")
+
     parser.add_argument('-lconf', nargs=3, dest="latencies_config",
                         type=int, help="interval config of \
                         latencies ,\
@@ -167,16 +187,39 @@ def main():
     if arguments.block_factor:
         block_factor(arguments.block_factor)
 
+    """
+    if arguments.victim_selection_strategy == 0:
+        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
+        victim_selection_strategy_config.append(arguments.remote_steal_probability)
+    elif arguments.victim_selection_strategy == 1:
+        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
+        victim_selection_strategy_config.append(arguments.steal_attempt_max)
+    elif arguments.victim_selection_strategy == 2:
+        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
+        victim_selection_strategy_config.append(arguments.steal_attempt_max)
+        victim_selection_strategy_config.append(arguments.steal_attempt_min)
+    """
+
+
     platform = Topology(arguments.processors,
-                        arguments.is_simultaneous)
+                        arguments.is_simultaneous,
+                        victim_selection_strategy=\
+                        arguments.victim_selection_strategy)
 
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
 
-    if not arguments.probabilities_config:
-        probabilities = [arguments.remote_steal_probability]
+    if arguments.victim_selection_strategy == 0:
+        if not arguments.probabilities_config:
+            victim_selection_configs = [arguments.remote_steal_probability]
+        else:
+            victim_selection_configs = list(floating_range(*arguments.probabilities_config))
     else:
-        probabilities = list(floating_range(*arguments.probabilities_config))
+        if not arguments.steal_attemption_config:
+            victim_selection_configs = [arguments.steal_attempt_max]
+        else:
+            victim_selection_configs = list(floating_range(*arguments.steal_attemption_config))
+
 
     if not arguments.latencies_config:
         latencies = [arguments.latency]
@@ -206,9 +249,15 @@ def main():
 
     for work in works:
         for threshold in arguments.task_threshold:
-            for probability in probabilities:
-                arguments.probability = probability
-                simulator.topology.remote_steal_probability = probability
+            for victim_selection_config in victim_selection_configs:
+                if arguments.victim_selection_strategy == 0:
+                    simulator.topology.remote_steal_probability = victim_selection_config
+                elif arguments.victim_selection_strategy == 1:
+                    simulator.topology.steal_attempt_max = victim_selection_config
+                elif arguments.victim_selection_strategy == 2:
+                    simulator.topology.steal_attempt_max = victim_selection_config
+                    simulator.topology.steal_attempt_min = arguments.steal_attempt_min
+
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
                     arguments.local_granularity = 2
@@ -297,7 +346,7 @@ def main():
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
                               \t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
-                                  probability,
+                                  victim_selection_config,
                                   latency,
                                   # simulator.steal_info["SIWR"],
                                   # simulator.steal_info["SEWR"],

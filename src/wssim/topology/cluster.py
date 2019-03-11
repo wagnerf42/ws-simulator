@@ -11,11 +11,14 @@ class Topology:
 
     def __init__(self, processors_number, is_simultaneous,
                  local_latency=1, remote_latency=None,
-                 remote_steal_probability=None):
+                 remote_steal_probability=None,
+                 victim_selection_strategy=None
+                 ):
         self.processors_number = processors_number
         self.latency = local_latency
         self.local_granularity = None
         self.is_simultaneous = is_simultaneous
+        self.victim_selection_strategy = None
 
     def distance(self, *processor_numbers):
         """
@@ -47,15 +50,15 @@ class Topology:
         else:
             self.local_granularity = local_granularity
 
-    def select_victim_not(self, unwanted_processor_number):
+    def select_victim_not(self, unwanted_processor):
         """
-        select a random target not unwanted_processor_number.
+        select a random target not unwanted_processor.number.
         """
         if self.processors_number == 1:
             print("one processor")
             return 0
         victim = int(random() * (self.processors_number-1))
-        if victim >= unwanted_processor_number:
+        if victim >= unwanted_processor.number:
             victim += 1
         return victim
 

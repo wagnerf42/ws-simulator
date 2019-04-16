@@ -15,6 +15,7 @@ class Topology:
                  victim_selection_strategy=None
                  ):
         self.processors_number = processors_number
+        self.clusters_number = 1
         self.latency = local_latency
         self.local_granularity = None
         self.is_simultaneous = is_simultaneous

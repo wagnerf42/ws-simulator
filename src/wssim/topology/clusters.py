@@ -1,7 +1,7 @@
 """
 topology related functions for 2 clusters.
 """
-from random import uniform, randint
+from random import uniform, randint, random
 
 class Topology:
     """
@@ -10,28 +10,22 @@ class Topology:
     def __init__(self, processors_number, is_simultaneous,
                  local_latency=1, remote_latency=None,
                  remote_steal_probability=None,
-                 victim_selection_strategy=None
-                 ):
+                 victim_selection_strategy=None,
+                 clusters_number=6
+                ):
         self.processors_number = processors_number
+        self.clusters_number = clusters_number
+        self.remote_steal_probability = remote_steal_probability
         self.latencies = [remote_latency, local_latency]
-        self.cluster_sizes = [self.processors_number//2]
-        self.cluster_sizes.append(self.processors_number -
-                                  self.cluster_sizes[0])
-        self.cluster_starts = [0, self.cluster_sizes[0]]
+
+        self.cluster_sizes = [self.processors_number//clusters_number]*(clusters_number-1)
+        self.cluster_sizes.append(self.processors_number -\
+                                  (clusters_number-1)*self.processors_number//clusters_number)
+        self.cluster_starts = [self.cluster_sizes[0]*i for i in range(self.clusters_number)]
         self.remote_granularity = None
         self.local_granularity = None
         self.is_simultaneous = is_simultaneous
         self.victim_selection_strategy = victim_selection_strategy
-        """
-        if self.victim_selection_strategy == 0: 
-            self.remote_steal_probability = 0.5 
-        elif self.victim_selection_strategy == 1:
-            self.steal_attempt_max = victim_selection_strategy[1]
-        elif self.victim_selection_strategy == 2:
-            assert(len(victim_selection_strategy) > 2)
-            self.steal_attempt_max = victim_selection_strategy[1]
-            self.steal_attempt_min = victim_selection_strategy[2]
-        """
 
     def distance(self, *processor_numbers):
         """
@@ -51,10 +45,12 @@ class Topology:
         """
         return cluster id for given processor
         """
-        if processor_id < self.processors_number // 2:
-            return 0
-        else:
-            return 1
+        target_cluster = -1
+        for start in self.cluster_starts:
+            if processor_id >= start:
+                target_cluster += 1
+
+        return target_cluster
 
     def update_granularity(self, local_granularity, remote_granularity, 
                            threshold):
@@ -76,21 +72,33 @@ class Topology:
         select a random target not unwanted_processor_number.
         """
         cluster = self.cluster_number(unwanted_processor.number)
+        clusters = []
         if self.victim_selection_strategy == 0:
             if uniform(0, 1) < self.remote_steal_probability:
-                target_cluster = 1 - cluster
+                #target_cluster = 1 - cluster
+                for cluster_index in range(self.clusters_number):
+                    if cluster_index != cluster:
+                        clusters.append(cluster_index)
+                target_cluster = clusters[randint(0, self.clusters_number-2)]
             else:
                 target_cluster = cluster
         else:
             if unwanted_processor.steal_attempt_number > unwanted_processor.steal_attempt_max:
-                target_cluster = 1 - cluster
+                #target_cluster = 1 - cluster
+                for cluster_index in range(self.clusters_number):
+                    if cluster_index != cluster:
+                        clusters.append(cluster_index)
+                target_cluster = clusters[randint(0, self.clusters_number-2)]
+
+
                 unwanted_processor.steal_attempt_number = 0
             else:
                 target_cluster = cluster
                 unwanted_processor.steal_attempt_number += 1
-
-        target_number = unwanted_processor.number
-        while target_number == unwanted_processor.number:
-            target_number = self.cluster_starts[target_cluster] +\
-                randint(0, self.cluster_sizes[target_cluster]-1)
-        return target_number
+        victim = self.cluster_starts[target_cluster] +\
+            int(random() * (self.cluster_sizes[target_cluster]-1))
+        victim_1 = victim
+        if victim >= unwanted_processor.number:
+            victim += 1
+        assert self.cluster_number(victim_1) == self.cluster_number(victim)
+        return victim

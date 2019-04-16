@@ -109,7 +109,7 @@ class DivisibleLoadTask(Task):
         remaining_work = self.get_work() - computed_work
         assert remaining_work >= 0
         if remote_steal:
-            my_share = remaining_work//2
+            my_share = remaining_work//8
         else:
             my_share = remaining_work//2
 
@@ -151,7 +151,7 @@ class DagTask(Task):
         """
         return self.work_for_size(self.task_size)
 
-    def split_work(self, current_time, granularity, graph=None):
+    def split_work(self, current_time, granularity, remote_steal=False, graph=None):
         """
         unsplited tasks, return None
         """
@@ -366,7 +366,7 @@ class AdaptiveTask(Task):
 
         return left_child, right_child, waiting_task, reduce_task
 
-    def split_work(self, current_time, granularity, graph=None):
+    def split_work(self, current_time, granularity, remote_steal=False, graph=None):
         """
         unsplited tasks, return None
         """

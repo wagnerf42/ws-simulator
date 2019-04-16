@@ -42,7 +42,7 @@ class Simulator:
         self.Esteal_data = defaultdict(int)
         if __debug__:
             if self.log_file is not None:
-                self.platform_definition_logger(2)
+                self.platform_definition_logger(topology.clusters_number)
 
     def reset(self, work, first_task):
         """
@@ -80,7 +80,7 @@ class Simulator:
             event.execute()
         if __debug__:
             if self.log_file is not None:
-                self.logger.end_of_logger(clusters_number=2,
+                self.logger.end_of_logger(clusters_number=self.topology.clusters_number,
                                           processors_number=len(
                                               self.processors))
 

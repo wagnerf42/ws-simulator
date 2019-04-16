@@ -116,9 +116,6 @@ class Processor:
                 else:
                     self.simulator.steal_info["SEWR"] += 1
                     self.simulator.steal_info["WE"] += stolen_task.get_work()
-                    #print("P", self.number, "answer P", stealer.number, "at ", self.current_time, "direction C", stealer.cluster)
-                    #print("%cluster:{}". format( 100*stolen_task.get_work()/self.simulator.steal_info["WI0"] )  )
-                    #assert(False)
                     if stealer.cluster == 0:
                         self.simulator.steal_info["WI1"] -= \
                             stolen_task.get_work()
@@ -129,11 +126,6 @@ class Processor:
                             stolen_task.get_work()
                         self.simulator.steal_info["WI1"] += \
                             stolen_task.get_work()
-                    #phi1 = (self.simulator.steal_info["WI0"] + self.simulator.steal_info["WI1"])**2
-                    #phi2 = self.simulator.steal_info["WI1"]**2 - (self.simulator.steal_info["WI1"]+self.simulator.steal_info["WI0"])**2/2
-                    #print( self.simulator.time, self.simulator.steal_info["WI0"],\
-                    #      self.simulator.steal_info["WI1"], stolen_task.get_work(), )
-                    #print("W0:",  self.simulator.steal_info["WI0"], "W1:", self.simulator.steal_info["WI1"], "Work stolen", stolen_task.get_work() )
 
                 if not self.simulator.topology.is_simultaneous:
                     self.network_time = reply_time
@@ -273,9 +265,9 @@ class Processor:
                 assert self.tasks
                 self.current_task = self.tasks.pop()
             assert self.current_task.get_work()
+            #assert self.steal_attempt_number == 0
             self.steal_attempt_number = 0
             self.current_task.start_time = self.current_time
-            self.steal_attempt_number = 0
             becoming_idle_time = self.current_time + \
                 self.current_task.get_work()//self.speed
             self.simulator.add_event(IdleEvent(becoming_idle_time, self))

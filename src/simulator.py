@@ -17,9 +17,8 @@ from wssim.simulator import Simulator
 from wssim.task import init_task_tree
 from wssim import activate_logs, svg_time_scal, block_factor, \
         init_task_cost, g_geo_blk_number, g_init_blk_size
-#from wssim.topology.cluster import Topology
-from wssim.topology.clusters import Topology
-
+from wssim.topology.cluster import Topology as Cluster
+from wssim.topology.clusters import Topology as Clusters
 
 def floating_range(start, end, step):
     """
@@ -126,6 +125,9 @@ def main():
     parser.add_argument("-p", dest="processors",
                         default=4, type=int,
                         help="total number of processors")
+    parser.add_argument("-c", dest="clusters",
+                        default=2, type=int,
+                        help="total number of clusters")
     parser.add_argument("-iws", dest="work_size",
                         default=100, type=int,
                         help="Input Work Size")
@@ -201,10 +203,17 @@ def main():
     """
 
 
-    platform = Topology(arguments.processors,
-                        arguments.is_simultaneous,
-                        victim_selection_strategy=\
-                        arguments.victim_selection_strategy)
+    if arguments.clusters > 1:
+        platform = Clusters(arguments.processors,
+                            arguments.is_simultaneous,
+                            victim_selection_strategy=\
+                            arguments.victim_selection_strategy,
+                            clusters_number=arguments.clusters)
+    else:
+        platform = Cluster(arguments.processors,
+                            arguments.is_simultaneous,
+                            victim_selection_strategy=\
+                            arguments.victim_selection_strategy)
 
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)

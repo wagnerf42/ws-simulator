@@ -189,19 +189,6 @@ def main():
     if arguments.block_factor:
         block_factor(arguments.block_factor)
 
-    """
-    if arguments.victim_selection_strategy == 0:
-        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
-        victim_selection_strategy_config.append(arguments.remote_steal_probability)
-    elif arguments.victim_selection_strategy == 1:
-        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
-        victim_selection_strategy_config.append(arguments.steal_attempt_max)
-    elif arguments.victim_selection_strategy == 2:
-        victim_selection_strategy_config.append(arguments.victim_selection_strategy)
-        victim_selection_strategy_config.append(arguments.steal_attempt_max)
-        victim_selection_strategy_config.append(arguments.steal_attempt_min)
-    """
-
 
     if arguments.clusters > 1:
         platform = Clusters(arguments.processors,
@@ -218,7 +205,7 @@ def main():
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
 
-    if arguments.victim_selection_strategy == 0:
+    if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 3 :
         if not arguments.probabilities_config:
             victim_selection_configs = [arguments.remote_steal_probability]
         else:
@@ -255,13 +242,14 @@ def main():
     print("#1:proba\t2:latency\t3:runTime\t4:processors\t5:input-work-size\t6:taskThreshold\t7:lGranularity\
             \t8:W0\t9:W1\t10:block_factory\t11:init_task_cost\t12:waiting-time\
             \t13:idle_time\t14:Geo_block_number\t15:init_blk_size\t16:max_blk_size\t17:IWR\t18:EWR")
-
+    print("arguments.victim_selection_strategy:",arguments.victim_selection_strategy)
     for work in works:
         for threshold in arguments.task_threshold:
             for victim_selection_config in victim_selection_configs:
-                if arguments.victim_selection_strategy == 0:
+                if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 3:
                     simulator.topology.remote_steal_probability = victim_selection_config
-                elif arguments.victim_selection_strategy == 1:
+                elif arguments.victim_selection_strategy == 1 or arguments.victim_selection_strategy == 4:
+                    print("OKOKOKOK:", victim_selection_config)
                     simulator.topology.steal_attempt_max = victim_selection_config
                 elif arguments.victim_selection_strategy == 2:
                     simulator.topology.steal_attempt_max = victim_selection_config

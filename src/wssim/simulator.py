@@ -63,9 +63,9 @@ class Simulator:
                 processor.reset(first_task=first_task)
                 self.add_active_processor(processor)
 
-            if self.topology.victim_selection_strategy == 1:
+            if self.topology.victim_selection_strategy == 1 or self.topology.victim_selection_strategy == 4:
                 processor.steal_attempt_max = self.topology.steal_attempt_max
-            elif self.topology.victim_selection_strategy == 2:
+            elif self.topology.victim_selection_strategy == 2 :
                 processor.steal_attempt_max =  randint(self.topology.steal_attempt_min,\
                                                   self.topology.steal_attempt_max)
 

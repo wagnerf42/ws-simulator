@@ -3,9 +3,9 @@ the processor module provides a Processor class
 holding processors states for the simulation.
 """
 
+#from random import randint
 from collections import deque
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
-from random import uniform, randint
 
 class Processor:
     """
@@ -29,6 +29,8 @@ class Processor:
         self.tasks = deque()
         self.steal_attempt_number = 0
         self.steal_attempt_max = 1
+        self.successful_remote_steal = 0
+        self.successful_local_steal = 0
         #self.steal_attempt_max =  randint(6, 12)
 
     def reset(self, first_task=None):
@@ -83,9 +85,9 @@ class Processor:
             splitting_result = \
                     self.current_task.split_work(self.current_time,
                                                  granularity,
-                                                 remote_steal = (self.cluster != stealer.cluster),
+                                                 remote_steal=(self.cluster != stealer.cluster),
                                                  graph=self.simulator.graph
-                                                 )
+                                                )
 
 
             if splitting_result:
@@ -93,6 +95,7 @@ class Processor:
                 self.simulator.total_work += reduce_work
                 self.simulator.add_event(IdleEvent(idle_time, self))
                 return created_task
+        return None
 
     def answer_steal_request(self, stealer):
         """
@@ -102,7 +105,8 @@ class Processor:
         """
         self.current_time = self.simulator.time
         reply_time = self.simulator.communication_end_time(self, stealer)
-        self.simulator.steal_info["idle_time"] += self.simulator.topology.distance(stealer.number, self.number)
+        self.simulator.steal_info["idle_time"] += \
+            self.simulator.topology.distance(stealer.number, self.number)
         if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(stealer, self, "WReq")
@@ -132,8 +136,6 @@ class Processor:
                     if stolen_task.type == 1:
                         self.network_time += stolen_task.get_work()
 
-
-
                 if __debug__:
                     if self.simulator.log_file is not None:
                         self.simulator.logger.push_processor_state(
@@ -151,7 +153,7 @@ class Processor:
             StealAnswerEvent(reply_time, stealer, self, stolen_task)
         )
 
-        if __debug__ and self.cluster != stealer.cluster :
+        if __debug__ and self.cluster != stealer.cluster:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(
                     self, stealer, data="Response")
@@ -207,7 +209,7 @@ class Processor:
 
         if self.current_task is None:
             self.start_stealing()
-            if __debug__ :
+            if __debug__:
                 if self.simulator.log_file is not None:
                     self.simulator.logger.update_processor_state(
                         self, new_state="Stealing")
@@ -225,17 +227,17 @@ class Processor:
         self.simulator.add_event(
             StealRequestEvent(steal_time, self, victim)
         )
-        self.simulator.steal_info["idle_time"] += self.simulator.topology.distance(victim.number, self.number)
+        self.simulator.steal_info["idle_time"] += \
+            self.simulator.topology.distance(victim.number, self.number)
+
         if self.cluster == victim.cluster:
             self.simulator.steal_info["IWR"] += 1
-            self.simulator.Isteal_data[self.current_time] +=1
+            self.simulator.Isteal_data[self.current_time] += 1
         else:
-            #print("time : ", self.current_time)
-            #print("P", self.number, "steal P", victim.number, "at ", self.current_time, "direction C", victim.cluster)
-            #print("W0:",  self.simulator.steal_info["WI0"], "W1:", self.simulator.steal_info["WI1"] )
             self.simulator.steal_info["EWR"] += 1
-            self.simulator.Esteal_data[self.current_time] +=1
-        if __debug__ :
+            self.simulator.Esteal_data[self.current_time] += 1
+
+        if __debug__:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
@@ -253,7 +255,18 @@ class Processor:
         if stolen_task is None:
             # still no work, steal again
             self.start_stealing()
+            if self.cluster == victim.cluster :
+                if self.successful_local_steal != 0:
+                    self.successful_local_steal -= 1
+            else:
+                if self.successful_remote_steal != 0:
+                    self.successful_remote_steal -= 1
         else:
+            if self.cluster == victim.cluster:
+                self.successful_local_steal += 1
+            else:
+                self.successful_remote_steal += 1
+
             self.current_task = stolen_task
             # Todo: repetition
             while self.current_task.get_work() == 0:
@@ -283,28 +296,3 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(victim, self,
                                                         data="Response")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

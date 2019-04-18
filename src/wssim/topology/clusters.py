@@ -52,7 +52,7 @@ class Topology:
 
         return target_cluster
 
-    def update_granularity(self, local_granularity, remote_granularity, 
+    def update_granularity(self, local_granularity, remote_granularity,
                            threshold):
         """
         update local and remote grenularity,
@@ -67,38 +67,77 @@ class Topology:
         else:
             self.remote_granularity = remote_granularity
 
+    def select_cluster_with_probability(self, stealer):
+        """
+        select cluster  with probabilistic strategy
+        """
+        cluster = self.cluster_number(stealer.number)
+        remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
+
+        if uniform(0, 1) < self.remote_steal_probability:
+            return remaining_clusters[randint(0, self.clusters_number-2)]
+
+        return cluster
+
+    def select_cluster_systematically(self, stealer):
+        """
+        select cluster  with systematic strategy
+        """
+        cluster = self.cluster_number(stealer.number)
+        remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
+        print("stealer.steal_attempt_max", stealer.steal_attempt_max)
+        if stealer.steal_attempt_number > stealer.steal_attempt_max:
+            stealer.steal_attempt_number = 0
+            return remaining_clusters[randint(0, self.clusters_number-2)]
+
+        stealer.steal_attempt_number += 1
+        return cluster
+
+    def select_cluster_SBS(self, stealer):
+        """
+        select cluster based on successful steal
+        """
+        print(stealer.number,"at", stealer.simulator.time, "select_cluster_SBS: R:", stealer.successful_remote_steal," L", stealer.successful_local_steal )
+        cluster = self.cluster_number(stealer.number)
+        remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
+        if stealer.successful_remote_steal > stealer.successful_local_steal:
+            #stealer.successful_remote_steal -= 1
+            return remaining_clusters[randint(0, self.clusters_number-2)]
+
+         #stealer.successful_local_steal -= 1
+        return cluster
+
     def select_victim_not(self, unwanted_processor):
         """
         select a random target not unwanted_processor_number.
         """
         cluster = self.cluster_number(unwanted_processor.number)
-        clusters = []
-        if self.victim_selection_strategy == 0:
-            if uniform(0, 1) < self.remote_steal_probability:
-                #target_cluster = 1 - cluster
-                for cluster_index in range(self.clusters_number):
-                    if cluster_index != cluster:
-                        clusters.append(cluster_index)
-                target_cluster = clusters[randint(0, self.clusters_number-2)]
-            else:
-                target_cluster = cluster
-        else:
-            if unwanted_processor.steal_attempt_number > unwanted_processor.steal_attempt_max:
-                #target_cluster = 1 - cluster
-                for cluster_index in range(self.clusters_number):
-                    if cluster_index != cluster:
-                        clusters.append(cluster_index)
-                target_cluster = clusters[randint(0, self.clusters_number-2)]
+        remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
+        assert not cluster in remaining_clusters
+        target_cluster = cluster
 
+        if self.victim_selection_strategy == 0: #Probabilistic strategy
+            target_cluster = self.select_cluster_with_probability(unwanted_processor)
+        elif self.victim_selection_strategy == 1 or self.victim_selection_strategy == 2: #Systematic strategy
+            target_cluster = self.select_cluster_systematically(unwanted_processor)
+        elif self.victim_selection_strategy == 3 or self.victim_selection_strategy == 4:
+            if unwanted_processor.successful_remote_steal <= 0 and \
+                    unwanted_processor.successful_local_steal <= 0:
+                if self.victim_selection_strategy == 4:
+                    target_cluster = self.select_cluster_systematically(unwanted_processor)
+                elif self.victim_selection_strategy == 3 :
+                    target_cluster = self.select_cluster_with_probability(unwanted_processor)
 
-                unwanted_processor.steal_attempt_number = 0
             else:
-                target_cluster = cluster
-                unwanted_processor.steal_attempt_number += 1
+                target_cluster = self.select_cluster_SBS(unwanted_processor)
+
         victim = self.cluster_starts[target_cluster] +\
             int(random() * (self.cluster_sizes[target_cluster]-1))
         victim_1 = victim
         if victim >= unwanted_processor.number:
             victim += 1
+        assert unwanted_processor.number != victim
         assert self.cluster_number(victim_1) == self.cluster_number(victim)
         return victim
+
+

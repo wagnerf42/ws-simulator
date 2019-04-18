@@ -109,9 +109,9 @@ class DivisibleLoadTask(Task):
         remaining_work = self.get_work() - computed_work
         assert remaining_work >= 0
         if remote_steal:
-            my_share = remaining_work//8
+            my_share = remaining_work // 2
         else:
-            my_share = remaining_work//2
+            my_share = remaining_work // 2
 
         if my_share >= granularity:
             self.set_work_size(computed_work + my_share)

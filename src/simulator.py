@@ -56,6 +56,7 @@ def update_graph(tasks, graph):
 def display_config_type(config_type):
     """
     display config type based on input
+    for adaptive tasks
     """
     if config_type == SQRT_DYNAMIC:
         print("#SQRT_DYNAMIC")
@@ -69,8 +70,6 @@ def display_config_type(config_type):
         print("#MIN_MAX_STATIC")
     elif config_type == MIN_MAX_DYNAMIC:
         print("#MIN_MAX_DYNAMIC")
-
-
 
 SQRT_DYNAMIC = 0
 LOG_DYNAMIC = 1
@@ -126,7 +125,7 @@ def main():
                         default=4, type=int,
                         help="total number of processors")
     parser.add_argument("-c", dest="clusters",
-                        default=2, type=int,
+                        default=1, type=int,
                         help="total number of clusters")
     parser.add_argument("-iws", dest="work_size",
                         default=100, type=int,
@@ -242,14 +241,13 @@ def main():
     print("#1:proba\t2:latency\t3:runTime\t4:processors\t5:input-work-size\t6:taskThreshold\t7:lGranularity\
             \t8:W0\t9:W1\t10:block_factory\t11:init_task_cost\t12:waiting-time\
             \t13:idle_time\t14:Geo_block_number\t15:init_blk_size\t16:max_blk_size\t17:IWR\t18:EWR")
-    print("arguments.victim_selection_strategy:",arguments.victim_selection_strategy)
+    print("#arguments.victim_selection_strategy:",arguments.victim_selection_strategy)
     for work in works:
         for threshold in arguments.task_threshold:
             for victim_selection_config in victim_selection_configs:
                 if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 3:
                     simulator.topology.remote_steal_probability = victim_selection_config
                 elif arguments.victim_selection_strategy == 1 or arguments.victim_selection_strategy == 4:
-                    print("OKOKOKOK:", victim_selection_config)
                     simulator.topology.steal_attempt_max = victim_selection_config
                 elif arguments.victim_selection_strategy == 2:
                     simulator.topology.steal_attempt_max = victim_selection_config
@@ -257,7 +255,7 @@ def main():
 
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    arguments.local_granularity = 2
+                    arguments.local_granularity = 2*latency
                     arguments.remote_granularity = latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold

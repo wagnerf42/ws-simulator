@@ -85,7 +85,7 @@ class Topology:
         """
         cluster = self.cluster_number(stealer.number)
         remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
-        print("stealer.steal_attempt_max", stealer.steal_attempt_max)
+        #print("stealer.steal_attempt_max", stealer.steal_attempt_max)
         if stealer.steal_attempt_number > stealer.steal_attempt_max:
             stealer.steal_attempt_number = 0
             return remaining_clusters[randint(0, self.clusters_number-2)]
@@ -97,7 +97,7 @@ class Topology:
         """
         select cluster based on successful steal
         """
-        print(stealer.number,"at", stealer.simulator.time, "select_cluster_SBS: R:", stealer.successful_remote_steal," L", stealer.successful_local_steal )
+        #print(stealer.number,"at", stealer.simulator.time, "select_cluster_SBS: R:", stealer.successful_remote_steal," L", stealer.successful_local_steal )
         cluster = self.cluster_number(stealer.number)
         remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
         if stealer.successful_remote_steal > stealer.successful_local_steal:

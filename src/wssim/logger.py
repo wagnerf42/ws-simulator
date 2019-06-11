@@ -25,7 +25,7 @@ class Logger:
         """
         add log to create processor with its number and its cluster
         """
-        print("6 {} P{} P Cluster{} \"Processor {}\"".format(
+        print("6 {} P{} P Cluster{} \"Proc {}\"".format(
             *[str(i) for i in (self.simulator.time, processor.number,
                                processor.cluster, processor.number)]),
               file=self.file)
@@ -40,25 +40,25 @@ class Logger:
         """
         add log to initialise work in a processors.
         """
-     #   print("13 {} Work W{} {}.00 ".format(
-     #       *[str(i) for i in(self.simulator.time, processor.number, work)]),
-     #         file=self.file)
+        #print("13 {} Work W{} {}.00 ".format(
+        #    *[str(i) for i in(self.simulator.time, processor.number, work)]),
+        #      file=self.file)
 
     def add_work(self, processor, work=0):
         """
         add log to add work in a processors.
         """
-      #  print("14 {} Work W{} {}.00 ".format(
-      #      *[str(i) for i in(self.simulator.time, processor.number, work)]),
-      #        file=self.file)
+        #print("14 {} Work W{} {}.00 ".format(
+        #    *[str(i) for i in(self.simulator.time, processor.number, work)]),
+        #      file=self.file)
 
     def sub_work(self, processor, work=0):
         """
         add log to sub work in a processors.
         """
-       # print("15 {} Work W{} {}.00 ".format(
-       #     *[str(i) for i in(self.simulator.time, processor.number, work)]),
-       #       file=self.file)
+        #print("15 {} Work W{} {}.00 ".format(
+        #    *[str(i) for i in(self.simulator.time, processor.number, work)]),
+        #      file=self.file)
 
     def update_processor_state(self, processor, new_state):
         """
@@ -103,39 +103,38 @@ class Logger:
         add log to start link between source and distination.
         key comunication define like "key = source-distination"
         """
-     #   if source.cluster == distination.cluster:
-     #       print("11 {} P{} {}-{} \"{}\" Cluster{} IReq_Res".format(
-     #           *[str(i) for i in (self.simulator.time, source.number,
-     #                              source.number, distination.number,
-     #                              data, distination.cluster)]),
-     #             file=self.file)
-#
-     #   else:
-     #       print("11 {} P{} {}-{} \"{}\" Cluster{} EReq_Res".format(
-     #           *[str(i) for i in (self.simulator.time, source.number,
-     #                              source.number, distination.number,
-     #                              data, distination.cluster)]),
-     #             file=self.file)
+        if source.cluster == distination.cluster:
+            print("11 {} P{} {}-{} \"{}\" Cluster{} IReq_Res".format(
+                *[str(i) for i in (self.simulator.time, source.number,
+                                   source.number, distination.number,
+                                   data, distination.cluster)]),
+                  file=self.file)
+
+        else:
+            print("11 {} P{} {}-{} \"{}\" Cluster{} EReq_Res".format(
+                *[str(i) for i in (self.simulator.time, source.number,
+                                   source.number, distination.number,
+                                   data, distination.cluster)]),
+                  file=self.file)
 
     def end_communication(self, source, distination, data=""):
         """
         add log to end link between source and distination.
         key comunication is define like "source-distination"
         """
-      #  if source.cluster == distination.cluster:
-      #      print("12 {} P{} {}-{} \"{}\" Cluster{} IReq_Res".format(
-      #          *[str(i) for i in (self.simulator.time, distination.number,
-      #                             source.number, distination.number, data,
-      #                             distination.cluster)]),
-      #            file=self.file)
+        if source.cluster == distination.cluster:
+            print("12 {} P{} {}-{} \"{}\" Cluster{} IReq_Res".format(
+                *[str(i) for i in (self.simulator.time, distination.number,
+                                   source.number, distination.number, data,
+                                   distination.cluster)]),
+                  file=self.file)
 
-      #  else:
-      #      print("12 {} P{} {}-{} \"{}\" Cluster{} EReq_Res ".format(
-      #          *[str(i) for i in (self.simulator.time, distination.number,
-      #                             source.number, distination.number, data,
-      #                             distination.cluster)]),
-      #            file=self.file)
-
+        else:
+            print("12 {} P{} {}-{} \"{}\" Cluster{} EReq_Res ".format(
+                *[str(i) for i in (self.simulator.time, distination.number,
+                                   source.number, distination.number, data,
+                                   distination.cluster)]),
+                  file=self.file)
     def end_of_logger(self, clusters_number, processors_number):
         """
         add log to Destroy system information.
@@ -252,7 +251,7 @@ PAJE_HEADER = """\
 1 P C Processor
 1 W P Work
 
-2 PS P "Processor State"
+2 PS P "Proc State"
 
 3 IReq_Res C P P "Internal Request-Response"
 3 EReq_Res C P P "External Request-Response"

@@ -153,7 +153,7 @@ class Processor:
             StealAnswerEvent(reply_time, stealer, self, stolen_task)
         )
 
-        if __debug__ and self.cluster != stealer.cluster:
+        if __debug__: #and self.cluster != stealer.cluster:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(
                     self, stealer, data="Response")

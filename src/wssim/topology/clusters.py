@@ -67,6 +67,16 @@ class Topology:
         else:
             self.remote_granularity = remote_granularity
 
+    def victim_selection_config(self, config, step=None):
+        """
+        no selection config for one cluster
+        """
+
+    def steal_config(self, stealer, victim, task=None):
+        """
+        no selection config for one cluster
+        """
+
     def select_cluster_with_probability(self, stealer):
         """
         select cluster  with probabilistic strategy

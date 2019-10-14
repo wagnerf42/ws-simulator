@@ -4,7 +4,7 @@ holding processors states for the simulation.
 """
 
 #from random import randint
-from collections import deque
+from collections import deque, defaultdict
 from wssim.events import IdleEvent, StealAnswerEvent, StealRequestEvent
 
 class Processor:
@@ -24,13 +24,15 @@ class Processor:
         self.simulator = simulator
         self.current_time = 0
         self.network_time = 0  # network is in use until this time
+        self.stolen_task = None
         self.current_task = None
         self.cluster = cluster
         self.tasks = deque()
-        self.steal_attempt_number = 0
-        self.steal_attempt_max = 1
-        self.successful_remote_steal = 0
-        self.successful_local_steal = 0
+#        self.steal_configs = defaultdct(float)
+#        self.steal_attempt_number = 0
+#        self.steal_attempt_max = 1
+#        self.successful_remote_steal = 0
+#        self.successful_local_steal = 0
         #self.steal_attempt_max =  randint(6, 12)
 
     def reset(self, first_task=None):
@@ -149,6 +151,7 @@ class Processor:
         else:
             stolen_task = None
 
+        self.stolen_task = stolen_task
         self.simulator.add_event(
             StealAnswerEvent(reply_time, stealer, self, stolen_task)
         )
@@ -209,10 +212,10 @@ class Processor:
 
         if self.current_task is None:
             self.start_stealing()
-            if __debug__:
-                if self.simulator.log_file is not None:
-                    self.simulator.logger.update_processor_state(
-                        self, new_state="Stealing")
+            #if __debug__:
+            #    if self.simulator.log_file is not None:
+            #        self.simulator.logger.update_processor_state(
+            #            self, new_state="StealingE")
 
     def start_stealing(self):
         """
@@ -241,10 +244,15 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.start_communication(self, victim,
                                                           "WReq")
-        if __debug__ and self.cluster != victim.cluster:
+        if __debug__: 
             if self.simulator.log_file is not None:
-                self.simulator.logger.update_processor_state(
-                    self, new_state="StealingE")
+                if self.cluster != victim.cluster:
+                    self.simulator.logger.update_processor_state(
+                        self, new_state="StealingE")
+                else:
+                    self.simulator.logger.update_processor_state(
+                        self, new_state="Stealing")
+
 
     def steal_answer(self, stolen_task, victim):
         """
@@ -254,20 +262,23 @@ class Processor:
         # assert not self.tasks
         if stolen_task is None:
             # still no work, steal again
+            self.simulator.topology.steal_config(self, victim)
             self.start_stealing()
-            if self.cluster == victim.cluster :
-                if self.successful_local_steal != 0:
-                    self.successful_local_steal -= 1
-            else:
-                if self.successful_remote_steal != 0:
-                    self.successful_remote_steal -= 1
+            #if self.cluster == victim.cluster :
+            #    if self.steal_configs["successful_local_steal"] != 0:
+            #        self.steal_configs["successful_local_steal"] -= 1
+            #else:
+            #    if self.steal_configs["successful_remote_steal"] != 0:
+            #        self.steal_configs["successful_remote_steal"] -= 1
         else:
-            if self.cluster == victim.cluster:
-                self.successful_local_steal += 1
-            else:
-                self.successful_remote_steal += 1
+            self.simulator.topology.steal_config(self, victim, task=stolen_task)
+            #if self.cluster == victim.cluster:
+            #    self.steal_configs["successful_local_steal"] += 1
+            #else:
+            #    self.steal_configs["successful_remote_steal"] += 1
 
             self.current_task = stolen_task
+            victim.stolen_task = None
             # Todo: repetition
             while self.current_task.get_work() == 0:
                 self.current_task.start_time = self.current_time
@@ -278,8 +289,6 @@ class Processor:
                 assert self.tasks
                 self.current_task = self.tasks.pop()
             assert self.current_task.get_work()
-            #assert self.steal_attempt_number == 0
-            self.steal_attempt_number = 0
             self.current_task.start_time = self.current_time
             becoming_idle_time = self.current_time + \
                 self.current_task.get_work()//self.speed
@@ -296,3 +305,17 @@ class Processor:
             if self.simulator.log_file is not None:
                 self.simulator.logger.end_communication(victim, self,
                                                         data="Response")
+    def potential(self, current_time):
+        """
+        return potential function value for the current processor at the current time
+        """
+        potential = 0
+        if self.current_task is not None:
+            potential += self.current_task.get_remaining_work(current_time)**2
+        if self.stolen_task is not None:
+            potential += 2 * self.stolen_task.get_work()**2
+        return potential 
+
+
+
+

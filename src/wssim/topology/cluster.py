@@ -39,6 +39,15 @@ class Topology:
         """
         return 0
 
+    def victim_selection_config(self, config, step=None):
+        """
+        no selection config for one cluster
+        """
+
+    def steal_config(self, stealer, victim, task=None):
+        """
+        no selection config for one cluster
+        """
 
     def update_granularity(self, local_granularity, remote_granularity,
                            threshold):

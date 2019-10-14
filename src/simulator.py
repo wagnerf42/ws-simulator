@@ -19,6 +19,7 @@ from wssim import activate_logs, svg_time_scal, block_factor, \
         init_task_cost, g_geo_blk_number, g_init_blk_size
 from wssim.topology.cluster import Topology as Cluster
 from wssim.topology.clusters import Topology as Clusters
+from wssim.topology.two_clusters import Topology as Two_clusters
 
 def floating_range(start, end, step):
     """
@@ -94,9 +95,9 @@ def main():
                         default=1, type=int,
                         help="max internal steal attempts")
 
-    parser.add_argument("-samin", dest="steal_attempt_min",
-                        default=1, type=int,
-                        help="mix internal steal attempts (used when vss=2)")
+    parser.add_argument("-step", dest="remote_steal_proba_step",
+                        default=0.001, type=float,
+                        help="steal step remote (used when vss=1)")
 
     parser.add_argument("-vss", dest="victim_selection_strategy",
                         default=0, type=int,
@@ -189,12 +190,18 @@ def main():
         block_factor(arguments.block_factor)
 
 
-    if arguments.clusters > 1:
+    if arguments.clusters > 2:
         platform = Clusters(arguments.processors,
                             arguments.is_simultaneous,
                             victim_selection_strategy=\
                             arguments.victim_selection_strategy,
                             clusters_number=arguments.clusters)
+    elif arguments.clusters == 2:
+        print("deux")
+        platform = Two_clusters(arguments.processors,
+                            arguments.is_simultaneous,
+                            victim_selection_strategy=\
+                            arguments.victim_selection_strategy)
     else:
         platform = Cluster(arguments.processors,
                             arguments.is_simultaneous,
@@ -204,7 +211,7 @@ def main():
     simulator = Simulator(arguments.processors,
                           arguments.log_file, platform)
 
-    if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 3 :
+    if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 1 or arguments.victim_selection_strategy == 3:
         if not arguments.probabilities_config:
             victim_selection_configs = [arguments.remote_steal_probability]
         else:
@@ -245,14 +252,7 @@ def main():
     for work in works:
         for threshold in arguments.task_threshold:
             for victim_selection_config in victim_selection_configs:
-                if arguments.victim_selection_strategy == 0 or arguments.victim_selection_strategy == 3:
-                    simulator.topology.remote_steal_probability = victim_selection_config
-                elif arguments.victim_selection_strategy == 1 or arguments.victim_selection_strategy == 4:
-                    simulator.topology.steal_attempt_max = victim_selection_config
-                elif arguments.victim_selection_strategy == 2:
-                    simulator.topology.steal_attempt_max = victim_selection_config
-                    simulator.topology.steal_attempt_min = arguments.steal_attempt_min
-
+                simulator.topology.victim_selection_config(victim_selection_config, step=arguments.remote_steal_proba_step)
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
                     arguments.local_granularity = 2*latency
@@ -339,7 +339,7 @@ def main():
                                           outfile, indent=4)
 
                         print("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\
-                              \t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+                              \t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
                               .format(
                                   victim_selection_config,
                                   latency,
@@ -361,7 +361,8 @@ def main():
                                   geo_blk_max,
                                   simulator.steal_info["IWR"],
                                   # simulator.steal_info["beginning"]
-                                  simulator.steal_info["EWR"]
+                                  simulator.steal_info["EWR"],
+                                  arguments.remote_steal_proba_step
                               ))
 
                         #for i, j in simulator.Isteal_data.items():

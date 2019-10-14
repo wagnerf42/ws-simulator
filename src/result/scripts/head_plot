@@ -1,9 +1,0 @@
-#!/usr/bin/env gnuplot
-
-
-set term postscript eps color blacktext "Helvetica" 12
-set grid
-set xlabel 'Latency'
-set ylabel 'Overhead'
-
-

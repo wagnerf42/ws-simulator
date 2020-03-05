@@ -8,12 +8,13 @@
 
 for p in {16,32};
 do
-    for w in {10000000} #,50000000,100000000,500000000}
+    for w in 10000000 #,50000000,100000000,500000000}
     do
-        for latence in {64}  #{8,16,32,64,128,256,512,1024}
+        for latence in 64  #{8,16,32,64,128,256,512,1024}
         do
             echo "$latence -> vss_proba_$p\_$w"
-            ./simulator.py -p $p -c 2 -iws $w -l $latence -rspconf 0.001 0.02 0.002 -vss 0 -r 100 >> resultat_finition/new_vss_proba\_$p\_$w\_finition
+            echo $w
+            ./simulator.py -p $p -c 2 -iws $w -l $latence -rspconf 0.001 0.02 0.002 -vss 0 -r 100 > resultat_finition/new_vss_proba\_$p\_$w\_finition
         done
     done
 done

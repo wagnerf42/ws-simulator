@@ -74,12 +74,12 @@ class Simulator:
             event = self.next_event()
             self.time = event.time
             event.execute()
-            potential = sum([proc.potential(self.time) for proc in self.processors])
-            latence = self.topology.distance(0, 1)
-            info[self.time] = (len(self.processors)- len(self.active_processors), 1 + potential / (latence**2))
+            #potential = sum([proc.potential(self.time) for proc in self.processors])
+            #latence = self.topology.distance(0, 1)
+            #info[self.time] = (len(self.processors)- len(self.active_processors), 1 + potential / (latence**2))
 
-        for time in info:
-            print(time, len(self.processors), info[time][0], info[time][1] )
+        #for time in info:
+        #    print(time, len(self.processors), info[time][0], info[time][1] )
                   #"W", [(proc.number, proc.current_task.get_remaining_work(self.time)) for proc in self.processors if proc.current_task is not None],
                   #"S", [(proc.number, proc.stolen_task.get_work()) for proc in self.processors if proc.stolen_task is not None],
                   #"potential", [(proc.number, proc.potential(self.time)) for proc in self.processors], "", potential)

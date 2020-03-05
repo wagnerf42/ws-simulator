@@ -197,7 +197,6 @@ def main():
                             arguments.victim_selection_strategy,
                             clusters_number=arguments.clusters)
     elif arguments.clusters == 2:
-        print("deux")
         platform = Two_clusters(arguments.processors,
                             arguments.is_simultaneous,
                             victim_selection_strategy=\
@@ -322,7 +321,6 @@ def main():
                             #                            )
                             #               )
                         else:
-                            print("je suis bien la")
                             simulator.reset(work, DivisibleLoadTask(work))
                             depth = 0
 

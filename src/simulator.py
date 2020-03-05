@@ -255,7 +255,7 @@ def main():
                 simulator.topology.victim_selection_config(victim_selection_config, step=arguments.remote_steal_proba_step)
                 for latency in latencies:
                     simulator.topology.update_remote_latency(latency)
-                    arguments.local_granularity = 2*latency
+                    arguments.local_granularity = 2#*latency
                     arguments.remote_granularity = latency
                     if arguments.tasks:
                         arguments.local_granularity = threshold
@@ -322,6 +322,7 @@ def main():
                             #                            )
                             #               )
                         else:
+                            print("je suis bien la")
                             simulator.reset(work, DivisibleLoadTask(work))
                             depth = 0
 

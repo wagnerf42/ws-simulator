@@ -67,23 +67,13 @@ class Topology:
         else:
             self.remote_granularity = remote_granularity
 
-    def victim_selection_config(self, config, step=None):
-        """
-        no selection config for one cluster
-        """
-
-    def steal_config(self, stealer, victim, task=None):
-        """
-        no selection config for one cluster
-        """
-
     def select_cluster_with_probability(self, stealer):
         """
         select cluster  with probabilistic strategy
         """
         cluster = self.cluster_number(stealer.number)
         remaining_clusters = list(filter(lambda c: c != cluster, range(self.clusters_number)))
-
+        print("je suis en proba:")
         if uniform(0, 1) < self.remote_steal_probability:
             return remaining_clusters[randint(0, self.clusters_number-2)]
 
